@@ -12,6 +12,42 @@ h1{font-size:clamp(25px,5vw,39px);line-height:1.08;letter-spacing:-1.2px;margin:
 select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 13px}button{background:var(--green);color:#062016;font-weight:800;border:0;cursor:pointer}button:disabled{opacity:.55;cursor:wait}
 .grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:13px}.card{background:linear-gradient(145deg,#131e31,#0e1727);border:1px solid var(--line);border-radius:17px;padding:17px;min-width:0}.hero{grid-column:span 7}.side{grid-column:span 5}.wide{grid-column:span 12}.half{grid-column:span 6}.label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700}.signal{font-size:34px;font-weight:900;letter-spacing:-1px;margin:7px 0}.signal.buy{color:var(--green)}.signal.sell{color:var(--red)}.signal.wait{color:var(--yellow)}.price{font-size:30px;font-weight:800;letter-spacing:-.7px;margin:4px 0}.meta{color:var(--muted);font-size:12px}.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.chip{border:1px solid var(--line);border-radius:9px;padding:5px 9px;font-size:12px;color:#c3d0e7}.chartbox{height:205px;margin-top:12px;position:relative}canvas{width:100%;height:100%;display:block}.rows{display:grid;gap:10px;margin-top:12px}.rowitem{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #202c40;padding-bottom:9px}.rowitem:last-child{border:0;padding:0}.val{font-weight:750;text-align:right}.ok{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--yellow)}.note{background:#0b1525;border:1px solid #293951;border-radius:12px;padding:12px;color:#aebbd0;font-size:12px;margin-top:14px}.sectionhead{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.smallbtn{padding:8px 11px;font-size:12px}.tablewrap{overflow:auto;margin-top:10px}table{border-collapse:collapse;width:100%;min-width:430px}th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);font-size:13px}th{color:var(--muted);font-weight:650}td{font-weight:650}.foot{margin-top:18px;color:var(--muted);font-size:11px}.status{font-size:12px;color:var(--muted);min-height:20px}.error{color:var(--red)}.disclaimer{border-color:#59492c;background:#201b11;color:#f0d79e}
 @media(max-width:720px){.hero,.side,.half{grid-column:span 12}.card{padding:15px}.signal{font-size:30px}}
+.chartlayout{
+  display:grid;
+  grid-template-columns:minmax(0,3fr) minmax(90px,1fr);
+  gap:8px;
+  align-items:stretch;
+}
+.chartlayout .chartbox{
+  min-width:0;
+}
+.profilebox{
+  min-width:0;
+  height:220px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:6px;
+  display:flex;
+  flex-direction:column;
+}
+.profiletitle{
+  font-size:9px;
+  font-weight:700;
+  color:var(--muted);
+  text-align:center;
+  margin-bottom:5px;
+}
+#volumeProfile{
+  width:100%;
+  flex:1;
+  min-height:0;
+}
+@media(max-width:480px){
+  .chartlayout{
+    grid-template-columns:minmax(0,2.2fr) minmax(85px,1fr);
+  }
+}
 </style>
 </head>
 <body><main>
@@ -30,7 +66,15 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
 <div class="signal wait" id="signal">WAIT</div>
 <div class="price" id="price">—</div><div class="meta" id="pairname">Live market price · —</div>
 <div class="chips"><span class="chip" id="rsi">RSI 14: —</span><span class="chip" id="vol">Volume: —</span><span class="chip" id="trend">4H trend: —</span></div>
-<div class="chartbox"><canvas id="chart" aria-label="Recent closing prices"></canvas></div>
+<div class="chartlayout">
+  <div class="chartbox">
+    <canvas id="chart" aria-label="Recent closing prices"></canvas>
+  </div>
+  <div class="profilebox">
+    <div class="profiletitle">VOLUME PROFILE</div>
+    <canvas id="volumeProfile" aria-label="Estimated volume profile"></canvas>
+  </div>
+</div>
 <div class="meta">Recent closed 1H candles · visual line only</div>
 </div>
 <div class="card side">
@@ -206,10 +250,66 @@ function show(a,symbol,live){
   $("summary").textContent=a.state==="BUY"?"All example BUY conditions are currently met on finalized candles. This is not a recommendation or a validated strategy.":a.state==="SELL"?"Bearish conditions met under this prototype's rules. SELL is a bearish alert, not an instruction to short.":"No complete BUY or SELL setup under the current example rules. WAIT is a valid outcome.";
 
   draw(a.c.slice(-90).map(x=>x.c));
+  drawVolumeProfile(a.c,live);
   $("updated").textContent="Fetched "+new Date().toLocaleTimeString();
   $("candleTime").textContent="Last 1H candle closed "+new Date(a.stamp).toLocaleString();
 }
 function draw(vals){let can=$("chart"),r=can.getBoundingClientRect(),dpr=devicePixelRatio||1;can.width=r.width*dpr;can.height=r.height*dpr;let ctx=can.getContext("2d");ctx.scale(dpr,dpr);let w=r.width,h=r.height,pad=10,min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;ctx.strokeStyle="#26354c";ctx.lineWidth=1;for(let i=0;i<4;i++){let y=pad+i*(h-2*pad)/3;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}ctx.beginPath();vals.forEach((v,i)=>{let x=i/(vals.length-1)*w,y=h-pad-(v-min)/range*(h-2*pad);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.strokeStyle="#43d6a0";ctx.lineWidth=2;ctx.stroke();ctx.lineTo(w,h-pad);ctx.lineTo(0,h-pad);ctx.closePath();ctx.fillStyle="rgba(67,214,160,.08)";ctx.fill()}
+function drawVolumeProfile(candles,live){
+
+  let r=can.getBoundingClientRect();
+  let dpr=window.devicePixelRatio||1;
+  if(!r.width||!r.height)return;
+
+  can.width=r.width*dpr;
+  can.height=r.height*dpr;
+
+  let ctx=can.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  let recent=cand.slice(-100);
+  if(!recent.length)return;
+
+  let low=Math.min(...recent.map(x=>x.l));
+  let high=Math.max(...recent.map(x=>x.h));
+  let bins=24;
+  let step=(high-low)/bins;
+  if(step<=0)return;
+
+  let volumes=Array(bins).fill(0);
+
+  recent.forEach(x=>{
+    let price=(x.h+x.l+x.c)/3;
+    let i=Math.max(0,Math.min(bins-1,
+      Math.floor((price-low)/step)));
+    volumes[i]+=x.v;
+  });
+
+  let maxVol=Math.max(...volumes)||1;
+  let pocIndex=volumes.indexOf(maxVol);
+  let w=r.width,h=r.height;
+  let rowH=h/bins;
+
+  ctx.clearRect(0,0,w,h);
+
+  for(let i=0;i<bins;i++){
+    let y=h-(i+1)*rowH;
+    let barW=(volumes[i]/maxVol)*(w-3);
+    ctx.fillStyle=i===pocIndex?"#f5c451":"#5689bd";
+    ctx.fillRect(0,y,barW,Math.max(1,rowH-1));
+  }
+
+  let priceIndex=Math.floor((live-low)/step);
+  if(priceIndex>=0&&priceIndex<bins){
+    let y=h-(priceIndex+0.5)*rowH;
+    ctx.strokeStyle="#43d6a0";
+    ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(w,y);
+    ctx.stroke();
+  }
+}
 async function scan(symbol=$("pair").value,quiet=false){if(!quiet){$("refresh").disabled=true;$("status").textContent="Fetching public market candles…";$("status").className="status"}try{let [h1,h4,live]=await Promise.all([candles(symbol,"1h"),candles(symbol,"4h"),livePrice(symbol)]);let a=analyze(h1,h4);if(!quiet)show(a,symbol,live);return {...a,live}}catch(e){if(!quiet){$("status").textContent=e.message;$("status").className="status error";$("signal").textContent="DATA ERROR";$("signal").className="signal wait"}throw e}finally{if(!quiet)$("refresh").disabled=false}}
 $("refresh").addEventListener("click",async()=>{try{await scan()}catch{}});
   setInterval(async()=>{
