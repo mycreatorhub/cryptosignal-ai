@@ -267,7 +267,7 @@ let can=$("volumeProfile");
   let ctx=can.getContext("2d");
   ctx.setTransform(dpr,0,0,dpr,0,0);
 
-  let recent=cand.slice(-100);
+  let recent=candles.slice(-100);
   if(!recent.length)return;
 
   let low=Math.min(...recent.map(x=>x.l));
