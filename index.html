@@ -123,12 +123,102 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
 <div class="sectionhead"><div><div class="label">Watchlist</div><div class="meta">Scan each asset separately to refresh its latest signal.</div></div><button class="smallbtn" id="watchscan">Scan watchlist</button></div>
 <div class="tablewrap"><table><thead><tr><th>Asset</th><th>Price (USDT)</th><th>Rule signal</th><th>RSI</th><th>4H trend</th></tr></thead><tbody id="watchbody"><tr><td colspan="5" style="color:var(--muted)">Run a watchlist scan to populate.</td></tr></tbody></table></div>
 </div>
+  <div class="card wide">
+  <div class="sectionhead">
+    <div>
+      <div class="label">Signal Performance Tracker</div>
+      <div class="meta">Historical simulated signal results</div>
+    </div>
+    <span class="pill">PAPER TRACKING</span>
+  </div>
+
+  <div class="grid" style="margin-top:15px">
+    <div class="card half">
+      <div class="label">Total Trades</div>
+      <div class="price" id="totalTrades">0</div>
+    </div>
+    <div class="card half">
+      <div class="label">Win Rate</div>
+      <div class="price" id="winRate">0%</div>
+    </div>
+    <div class="card half">
+      <div class="label">Wins</div>
+      <div class="price ok" id="totalWins">0</div>
+    </div>
+    <div class="card half">
+      <div class="label">Losses</div>
+      <div class="price bad" id="totalLosses">0</div>
+    </div>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Asset</th>
+          <th>Signal</th>
+          <th>Entry</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody id="historyBody">
+        <tr>
+          <td colspan="5" style="color:var(--muted)">
+            No recorded signals yet.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  </div>
 <div class="card wide disclaimer"><strong>Testing warning</strong><br>Experimental educational software. Signals can be wrong, delayed, incomplete, or unavailable. No profitability claims. Crypto trading can cause substantial losses. This demo uses public exchange market data and does not connect to accounts, execute trades, or collect personal information.</div>
 </section>
 <div class="foot">CryptoSignal AI MVP · Experimental signal rules · Market data availability depends on exchange API access.</div>
 </main>
 <script>
 const $=id=>document.getElementById(id);
+  const TRACKER_KEY="cryptosignal_history";
+
+function getHistory(){
+  try{
+    return JSON.parse(localStorage.getItem(TRACKER_KEY))||[];
+  }catch(e){
+    return [];
+  }
+}
+
+function saveHistory(history){
+  localStorage.setItem(TRACKER_KEY,JSON.stringify(history));
+}
+
+function renderPerformance(){
+  let history=getHistory();
+
+  let wins=history.filter(x=>x.result==="WIN").length;
+  let losses=history.filter(x=>x.result==="LOSS").length;
+  let completed=wins+losses;
+
+  $("totalTrades").textContent=history.length;
+  $("totalWins").textContent=wins;
+  $("totalLosses").textContent=losses;
+  $("winRate").textContent=
+    (completed?((wins/completed)*100).toFixed(1):"0")+"%";
+
+  $("historyBody").innerHTML=history.length?
+    history.slice().reverse().map(x=>`
+      <tr>
+        <td>${new Date(x.date).toLocaleDateString()}</td>
+        <td>${x.symbol}</td>
+        <td>${x.signal}</td>
+        <td>$${fmt(x.entry)}</td>
+        <td>${x.result||"PENDING"}</td>
+      </tr>
+    `).join(""):
+    `<tr><td colspan="5">No recorded signals yet.</td></tr>`;
+}
+
+renderPerformance();
 const fmt=n=>Number.isFinite(n)?n.toLocaleString("en-US",{maximumFractionDigits:n>=100?2:5}):"—";
 function ema(values,period){let k=2/(period+1),out=[];let seed=values.slice(0,period).reduce((a,b)=>a+b,0)/period;out[period-1]=seed;for(let i=period;i<values.length;i++)out[i]=values[i]*k+out[i-1]*(1-k);return out}
 function rsi(vals,p=14){let gains=0,losses=0;for(let i=1;i<=p;i++){let d=vals[i]-vals[i-1];gains+=Math.max(d,0);losses+=Math.max(-d,0)}let ag=gains/p,al=losses/p;for(let i=p+1;i<vals.length;i++){let d=vals[i]-vals[i-1];ag=(ag*(p-1)+Math.max(d,0))/p;al=(al*(p-1)+Math.max(-d,0))/p}return al===0?100:100-100/(1+ag/al)}
