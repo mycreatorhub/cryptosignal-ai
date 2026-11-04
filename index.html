@@ -287,12 +287,18 @@ let can=$("volumeProfile");
 
   let maxVol=Math.max(...volumes)||1;
 let pocIndex=volumes.indexOf(maxVol);
+  let pocPrice=low+(pocIndex+0.5)*step;
 let w=r.width,h=r.height;
 let rowH=h/bins;
 let labelWidth=42;
 let barArea=w-labelWidth;
 
   ctx.clearRect(0,0,w,h);
+  ctx.font="bold 10px Arial";
+ctx.textAlign="left";
+ctx.textBaseline="top";
+ctx.fillStyle="#f5c451";
+ctx.fillText("POC: "+pocPrice.toFixed(2),2,2);
 ctx.font="9px Arial";
 ctx.textAlign="right";
 ctx.textBaseline="middle";
