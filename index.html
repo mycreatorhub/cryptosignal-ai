@@ -318,6 +318,10 @@ for(let i=0;i<bins;i++){
 
   let priceIndex=Math.floor((live-low)/step);
   if(priceIndex>=0&&priceIndex<bins){
+    ctx.font="bold 10px Arial";
+ctx.fillStyle="#43d6a0";
+ctx.textAlign="left";
+ctx.fillText("LIVE: "+live.toFixed(2),2,14);
     let y=h-(priceIndex+0.5)*rowH;
     ctx.strokeStyle="#43d6a0";
     ctx.lineWidth=1.5;
