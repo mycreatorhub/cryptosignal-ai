@@ -286,15 +286,26 @@ let can=$("volumeProfile");
   });
 
   let maxVol=Math.max(...volumes)||1;
-  let pocIndex=volumes.indexOf(maxVol);
-  let w=r.width,h=r.height;
-  let rowH=h/bins;
+let pocIndex=volumes.indexOf(maxVol);
+let w=r.width,h=r.height;
+let rowH=h/bins;
+let labelWidth=42;
+let barArea=w-labelWidth;
 
   ctx.clearRect(0,0,w,h);
+ctx.font="9px Arial";
+ctx.textAlign="right";
+ctx.textBaseline="middle";
+ctx.fillStyle="#aab7c8";
 
+for(let i=0;i<bins;i++){
+  let price=low+(i+0.5)*step;
+  let y=h-(i+0.5)*rowH;
+  ctx.fillText(price.toFixed(2),w-2,y);
+}
   for(let i=0;i<bins;i++){
     let y=h-(i+1)*rowH;
-    let barW=(volumes[i]/maxVol)*(w-3);
+    let barW=(volumes[i]/maxVol)*(barArea-3);
     ctx.fillStyle=i===pocIndex?"#f5c451":"#5689bd";
     ctx.fillRect(0,y,barW,Math.max(1,rowH-1));
   }
