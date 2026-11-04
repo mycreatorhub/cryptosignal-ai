@@ -42,11 +42,17 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
 <div class="sectionhead"><div class="label">Trade planning reference</div><span class="pill">Illustrative</span></div>
 <div class="rows">
 <div class="rowitem"><span>Entry reference</span><span class="val" id="entry">—</span></div>
+<div class="rowitem"><span>Stop loss</span><span class="val" id="stop">—</span></div>
+<div class="rowitem"><span>Take profit 1</span><span class="val" id="target">—</span></div>
+<div class="rowitem"><span>Take profit 2</span><span class="val" id="target2">—</span></div>
+<div class="rowitem"><span>Risk / Reward TP1</span><span class="val" id="rr1">—</span></div>
+<div class="rowitem"><span>Risk / Reward TP2</span><span class="val" id="rr2">—</span></div>
 <div class="rowitem"><span>ATR (14), 1H</span><span class="val" id="atr">—</span></div>
-<div class="rowitem"><span>Stop reference</span><span class="val" id="stop">—</span></div>
-<div class="rowitem"><span>Target reference (2R)</span><span class="val" id="target">—</span></div>
+<div class="rowitem"><span>Support</span><span class="val" id="support">—</span></div>
+<div class="rowitem"><span>Resistance</span><span class="val" id="resistance">—</span></div>
+<div class="rowitem"><span>Volume Profile POC</span><span class="val" id="poc">—</span></div>
 </div>
-<div class="note">Planning placeholders for a BUY setup only. They are not orders or guaranteed fills. Validate stop logic, slippage and fees before using real money.</div>
+<div class="note">Experimental estimates based on completed 1H candles. Not orders or guaranteed fills. Validate the strategy before using real money.</div>
 </div>
 <div class="card half">
 <div class="sectionhead"><div class="label">Indicator snapshot</div><span class="pill">1H</span></div>
@@ -79,22 +85,91 @@ async function candles(symbol,interval){let u=`https://api.binance.com/api/v3/kl
   return price;
   }
 function closedOnly(data){let now=Date.now();return data.filter(x=>x.closeTime<now)}
-function analyze(one,four){let c=closedOnly(one),d=closedOnly(four);if(c.length<205||d.length<55)throw Error("Waiting for sufficient finalized candle history.");let close=c.map(x=>x.c),cl4=d.map(x=>x.c),e20=ema(close,20),e50=ema(close,50),e200=ema(close,200),e4_20=ema(cl4,20),e4_50=ema(cl4,50),last=close.length-1,px=close[last],rr=rsi(close),volume=c[last].v,volBase=c.slice(-21,-1).reduce((s,x)=>s+x.v,0)/20,volRatio=volume/volBase;let trend=e4_20.at(-1)>e4_50.at(-1)&&cl4.at(-1)>e4_50.at(-1)?"Bullish":e4_20.at(-1)<e4_50.at(-1)&&cl4.at(-1)<e4_50.at(-1)?"Bearish":"Mixed";let previousHigh=Math.max(...c.slice(-21,-1).map(x=>x.h));let breakout=px>previousHigh;let buyChecks=[trend==="Bullish",px>e20[last]&&e20[last]>e50[last],rr>50&&rr<68,volRatio>=1.15,breakout];let sellChecks=[trend==="Bearish",px<e20[last]&&e20[last]<e50[last],rr<47];let buy=buyChecks.every(Boolean),sell=sellChecks.every(Boolean);let state=buy?"BUY":sell?"SELL":"WAIT";let av=atr(c),stop=px-1.5*av,target=px+3*av;return{c,px,rr,volume,volRatio,trend,e20:e20[last],e50:e50[last],e200:e200[last],av,stop,target,state,breakout,buyChecks,sellChecks,stamp:c[last].closeTime,stamp4:d.at(-1).closeTime}}
-let previousLivePrice=null;
-let previousSymbol=null;
-function show(a,symbol,live){$("signal").textContent=a.state;$("signal").className="signal "+a.state.toLowerCase();$("price").textContent="$"+fmt(live);let movement="";
-if(previousSymbol===symbol&&previousLivePrice!==null){
-  let change=live-previousLivePrice;
-  let pct=change/previousLivePrice*100;
-  movement=change>0
-    ?` <span style="color:var(--green)">↑ +${pct.toFixed(3)}%</span>`
-    :change<0
-    ?` <span style="color:var(--red)">↓ ${pct.toFixed(3)}%</span>`
-    :` <span style="color:var(--muted)">→ 0.000%</span>`;
-}
-previousLivePrice=live;
-previousSymbol=symbol;
-$("pairname").innerHTML=symbol.replace("USDT"," / USDT")+" · Live market price"+movement;$("rsi").textContent="RSI 14: "+fmt(a.rr);$("vol").textContent="Volume: "+fmt(a.volRatio)+"× avg";$("trend").textContent="4H trend: "+a.trend;$("entry").textContent=a.state==="BUY"?"$"+fmt(a.px):"No BUY reference";$("atr").textContent="$"+fmt(a.av);$("stop").textContent=a.state==="BUY"?"$"+fmt(a.stop):"—";$("target").textContent=a.state==="BUY"?"$"+fmt(a.target):"—";$("indicators").innerHTML=[["EMA 20",a.e20],["EMA 50",a.e50],["EMA 200",a.e200]].map(([n,v])=>`<div class="rowitem"><span>${n}</span><span class="val">$${fmt(v)}</span></div>`).join("");let conditions=[["4H trend bullish",a.trend==="Bullish"],["1H close > EMA20 > EMA50",a.px>a.e20&&a.e20>a.e50],["RSI between 50 and 68",a.rr>50&&a.rr<68],["Volume ≥ 1.15× 20-bar avg",a.volRatio>=1.15],["Close breaks prior 20-bar high",a.breakout]];$("reasons").innerHTML=conditions.map(([n,ok])=>`<div class="rowitem"><span>${n}</span><span class="val ${ok?"ok":"bad"}">${ok?"PASS":"NOT MET"}</span></div>`).join("");$("summary").textContent=a.state==="BUY"?"All example BUY conditions are currently met on finalized candles. This is not a recommendation or a validated strategy.":a.state==="SELL"?"Bearish conditions met under this prototype's rules. SELL is a bearish alert, not an instruction to short.":"No complete BUY or SELL setup under the current example rules. WAIT is a valid outcome.";draw(a.c.slice(-90).map(x=>x.c));$("updated").textContent="Fetched "+new Date().toLocaleTimeString();$("candleTime").textContent="Last 1H candle closed "+new Date(a.stamp).toLocaleString();}
+function analyze(one,four){
+  let c=closedOnly(one),d=closedOnly(four);
+  if(c.length<205||d.length<55)
+    throw Error("Waiting for sufficient finalized candle history.");
+
+  let close=c.map(x=>x.c),cl4=d.map(x=>x.c);
+  let e20=ema(close,20),e50=ema(close,50),e200=ema(close,200);
+  let e4_20=ema(cl4,20),e4_50=ema(cl4,50);
+  let last=close.length-1,px=close[last],rr=rsi(close);
+  let volume=c[last].v;
+  let volBase=c.slice(-21,-1).reduce((s,x)=>s+x.v,0)/20;
+  let volRatio=volume/volBase;
+
+  let trend=e4_20.at(-1)>e4_50.at(-1)&&cl4.at(-1)>e4_50.at(-1)
+    ?"Bullish":e4_20.at(-1)<e4_50.at(-1)&&cl4.at(-1)<e4_50.at(-1)
+    ?"Bearish":"Mixed";
+
+  let previousHigh=Math.max(...c.slice(-21,-1).map(x=>x.h));
+  let breakout=px>previousHigh;
+
+  let buyChecks=[trend==="Bullish",px>e20[last]&&e20[last]>e50[last],rr>50&&rr<68,volRatio>=1.15,breakout];
+  let sellChecks=[trend==="Bearish",px<e20[last]&&e20[last]<e50[last],rr<47];
+  let buy=buyChecks.every(Boolean),sell=sellChecks.every(Boolean);
+  let state=buy?"BUY":sell?"SELL":"WAIT";
+
+  let av=atr(c);
+  let recent=c.slice(-100);
+
+  // Estimate volume by assigning each candle's volume to its typical price.
+  let low=Math.min(...recent.map(x=>x.l));
+  let high=Math.max(...recent.map(x=>x.h));
+  let bins=24,step=(high-low)/bins;
+  let profile=Array(bins).fill(0);
+
+  if(step>0){
+    recent.forEach(x=>{
+      let typical=(x.h+x.l+x.c)/3;
+      let index=Math.min(bins-1,Math.max(0,Math.floor((typical-low)/step)));
+      profile[index]+=x.v;
+    });
+  }
+
+  let pocIndex=profile.indexOf(Math.max(...profile));
+  let poc=low+(pocIndex+0.5)*step;
+
+  // Find recent local swing support and resistance.
+  let supports=[],resistances=[];
+  for(let i=Math.max(2,c.length-100);i<c.length-2;i++){
+    if(c[i].l<c[i-1].l&&c[i].l<c[i-2].l&&c[i].l<c[i+1].l&&c[i].l<c[i+2].l)
+      supports.push(c[i].l);
+    if(c[i].h>c[i-1].h&&c[i].h>c[i-2].h&&c[i].h>c[i+1].h&&c[i].h>c[i+2].h)
+      resistances.push(c[i].h);
+  }
+
+  let support=supports.filter(x=>x<px).sort((a,b)=>b-a)[0]||px-2*av;
+  let resistance=resistances.filter(x=>x>px).sort((a,b)=>a-b)[0]||px+2*av;
+
+  let entry=px,stop=null,tp1=null,tp2=null,rr1=null,rr2=null;
+
+  if(state==="BUY"){
+    stop=Math.min(px-1.5*av,support-0.25*av);
+    let risk=entry-stop;
+    tp1=resistance>entry+0.5*risk?resistance:entry+2*risk;
+    tp2=Math.max(entry+3*risk,tp1+0.5*risk);
+    rr1=(tp1-entry)/risk;
+    rr2=(tp2-entry)/risk;
+  }
+
+  if(state==="SELL"){
+    stop=Math.max(px+1.5*av,resistance+0.25*av);
+    let risk=stop-entry;
+    tp1=support<entry-0.5*risk?support:entry-2*risk;
+    tp2=Math.min(entry-3*risk,tp1-0.5*risk);
+    rr1=(entry-tp1)/risk;
+    rr2=(entry-tp2)/risk;
+  }$("entry").textContent=a.state==="WAIT"?"—":"$"+fmt(a.entry);
+$("atr").textContent="$"+fmt(a.av);
+$("stop").textContent=a.stop===null?"—":"$"+fmt(a.stop);
+$("target").textContent=a.tp1===null?"—":"$"+fmt(a.tp1);
+$("target2").textContent=a.tp2===null?"—":"$"+fmt(a.tp2);
+$("rr1").textContent=a.rr1===null?"—":a.rr1.toFixed(2)+"R";
+$("rr2").textContent=a.rr2===null?"—":a.rr2.toFixed(2)+"R";
+$("support").textContent="$"+fmt(a.support);
+$("resistance").textContent="$"+fmt(a.resistance);
+$("poc").textContent="$"+fmt(a.poc);$("indicators").innerHTML=[["EMA 20",a.e20],["EMA 50",a.e50],["EMA 200",a.e200]].map(([n,v])=>`<div class="rowitem"><span>${n}</span><span class="val">$${fmt(v)}</span></div>`).join("");let conditions=[["4H trend bullish",a.trend==="Bullish"],["1H close > EMA20 > EMA50",a.px>a.e20&&a.e20>a.e50],["RSI between 50 and 68",a.rr>50&&a.rr<68],["Volume ≥ 1.15× 20-bar avg",a.volRatio>=1.15],["Close breaks prior 20-bar high",a.breakout]];$("reasons").innerHTML=conditions.map(([n,ok])=>`<div class="rowitem"><span>${n}</span><span class="val ${ok?"ok":"bad"}">${ok?"PASS":"NOT MET"}</span></div>`).join("");$("summary").textContent=a.state==="BUY"?"All example BUY conditions are currently met on finalized candles. This is not a recommendation or a validated strategy.":a.state==="SELL"?"Bearish conditions met under this prototype's rules. SELL is a bearish alert, not an instruction to short.":"No complete BUY or SELL setup under the current example rules. WAIT is a valid outcome.";draw(a.c.slice(-90).map(x=>x.c));$("updated").textContent="Fetched "+new Date().toLocaleTimeString();$("candleTime").textContent="Last 1H candle closed "+new Date(a.stamp).toLocaleString();}
 function draw(vals){let can=$("chart"),r=can.getBoundingClientRect(),dpr=devicePixelRatio||1;can.width=r.width*dpr;can.height=r.height*dpr;let ctx=can.getContext("2d");ctx.scale(dpr,dpr);let w=r.width,h=r.height,pad=10,min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;ctx.strokeStyle="#26354c";ctx.lineWidth=1;for(let i=0;i<4;i++){let y=pad+i*(h-2*pad)/3;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}ctx.beginPath();vals.forEach((v,i)=>{let x=i/(vals.length-1)*w,y=h-pad-(v-min)/range*(h-2*pad);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.strokeStyle="#43d6a0";ctx.lineWidth=2;ctx.stroke();ctx.lineTo(w,h-pad);ctx.lineTo(0,h-pad);ctx.closePath();ctx.fillStyle="rgba(67,214,160,.08)";ctx.fill()}
 async function scan(symbol=$("pair").value,quiet=false){if(!quiet){$("refresh").disabled=true;$("status").textContent="Fetching public market candles…";$("status").className="status"}try{let [h1,h4,live]=await Promise.all([candles(symbol,"1h"),candles(symbol,"4h"),livePrice(symbol)]);let a=analyze(h1,h4);if(!quiet)show(a,symbol,live);return {...a,live}}catch(e){if(!quiet){$("status").textContent=e.message;$("status").className="status error";$("signal").textContent="DATA ERROR";$("signal").className="signal wait"}throw e}finally{if(!quiet)$("refresh").disabled=false}}
 $("refresh").addEventListener("click",async()=>{try{await scan()}catch{}});
