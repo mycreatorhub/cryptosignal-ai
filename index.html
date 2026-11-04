@@ -87,8 +87,7 @@ async function candles(symbol,interval){let u=`https://api.binance.com/api/v3/kl
 function closedOnly(data){let now=Date.now();return data.filter(x=>x.closeTime<now)}
 function analyze(one,four){
   let c=closedOnly(one),d=closedOnly(four);
-  if(c.length<205||d.length<55)
-    throw Error("Waiting for sufficient finalized candle history.");
+  if(c.length<205||d.length<55)throw Error("Waiting for sufficient finalized candle history.");
 
   let close=c.map(x=>x.c),cl4=d.map(x=>x.c);
   let e20=ema(close,20),e50=ema(close,50),e200=ema(close,200);
@@ -98,10 +97,7 @@ function analyze(one,four){
   let volBase=c.slice(-21,-1).reduce((s,x)=>s+x.v,0)/20;
   let volRatio=volume/volBase;
 
-  let trend=e4_20.at(-1)>e4_50.at(-1)&&cl4.at(-1)>e4_50.at(-1)
-    ?"Bullish":e4_20.at(-1)<e4_50.at(-1)&&cl4.at(-1)<e4_50.at(-1)
-    ?"Bearish":"Mixed";
-
+  let trend=e4_20.at(-1)>e4_50.at(-1)&&cl4.at(-1)>e4_50.at(-1)?"Bullish":e4_20.at(-1)<e4_50.at(-1)&&cl4.at(-1)<e4_50.at(-1)?"Bearish":"Mixed";
   let previousHigh=Math.max(...c.slice(-21,-1).map(x=>x.h));
   let breakout=px>previousHigh;
 
@@ -110,10 +106,10 @@ function analyze(one,four){
   let buy=buyChecks.every(Boolean),sell=sellChecks.every(Boolean);
   let state=buy?"BUY":sell?"SELL":"WAIT";
 
-  let av=atr(c);
-  let recent=c.slice(-100);
+  let trs=c.map((x,i)=>i?Math.max(x.h-x.l,Math.abs(x.h-c[i-1].c),Math.abs(x.l-c[i-1].c)):x.h-x.l);
+  let av=trs.slice(-14).reduce((a,b)=>a+b,0)/14;
 
-  // Estimate volume by assigning each candle's volume to its typical price.
+  let recent=c.slice(-100);
   let low=Math.min(...recent.map(x=>x.l));
   let high=Math.max(...recent.map(x=>x.h));
   let bins=24,step=(high-low)/bins;
@@ -128,15 +124,12 @@ function analyze(one,four){
   }
 
   let pocIndex=profile.indexOf(Math.max(...profile));
-  let poc=low+(pocIndex+0.5)*step;
+  let poc=step>0?low+(pocIndex+0.5)*step:low;
 
-  // Find recent local swing support and resistance.
   let supports=[],resistances=[];
   for(let i=Math.max(2,c.length-100);i<c.length-2;i++){
-    if(c[i].l<c[i-1].l&&c[i].l<c[i-2].l&&c[i].l<c[i+1].l&&c[i].l<c[i+2].l)
-      supports.push(c[i].l);
-    if(c[i].h>c[i-1].h&&c[i].h>c[i-2].h&&c[i].h>c[i+1].h&&c[i].h>c[i+2].h)
-      resistances.push(c[i].h);
+    if(c[i].l<c[i-1].l&&c[i].l<c[i-2].l&&c[i].l<c[i+1].l&&c[i].l<c[i+2].l)supports.push(c[i].l);
+    if(c[i].h>c[i-1].h&&c[i].h>c[i-2].h&&c[i].h>c[i+1].h&&c[i].h>c[i+2].h)resistances.push(c[i].h);
   }
 
   let support=supports.filter(x=>x<px).sort((a,b)=>b-a)[0]||px-2*av;
@@ -160,16 +153,62 @@ function analyze(one,four){
     tp2=Math.min(entry-3*risk,tp1-0.5*risk);
     rr1=(entry-tp1)/risk;
     rr2=(entry-tp2)/risk;
-  }$("entry").textContent=a.state==="WAIT"?"—":"$"+fmt(a.entry);
-$("atr").textContent="$"+fmt(a.av);
-$("stop").textContent=a.stop===null?"—":"$"+fmt(a.stop);
-$("target").textContent=a.tp1===null?"—":"$"+fmt(a.tp1);
-$("target2").textContent=a.tp2===null?"—":"$"+fmt(a.tp2);
-$("rr1").textContent=a.rr1===null?"—":a.rr1.toFixed(2)+"R";
-$("rr2").textContent=a.rr2===null?"—":a.rr2.toFixed(2)+"R";
-$("support").textContent="$"+fmt(a.support);
-$("resistance").textContent="$"+fmt(a.resistance);
-$("poc").textContent="$"+fmt(a.poc);$("indicators").innerHTML=[["EMA 20",a.e20],["EMA 50",a.e50],["EMA 200",a.e200]].map(([n,v])=>`<div class="rowitem"><span>${n}</span><span class="val">$${fmt(v)}</span></div>`).join("");let conditions=[["4H trend bullish",a.trend==="Bullish"],["1H close > EMA20 > EMA50",a.px>a.e20&&a.e20>a.e50],["RSI between 50 and 68",a.rr>50&&a.rr<68],["Volume ≥ 1.15× 20-bar avg",a.volRatio>=1.15],["Close breaks prior 20-bar high",a.breakout]];$("reasons").innerHTML=conditions.map(([n,ok])=>`<div class="rowitem"><span>${n}</span><span class="val ${ok?"ok":"bad"}">${ok?"PASS":"NOT MET"}</span></div>`).join("");$("summary").textContent=a.state==="BUY"?"All example BUY conditions are currently met on finalized candles. This is not a recommendation or a validated strategy.":a.state==="SELL"?"Bearish conditions met under this prototype's rules. SELL is a bearish alert, not an instruction to short.":"No complete BUY or SELL setup under the current example rules. WAIT is a valid outcome.";draw(a.c.slice(-90).map(x=>x.c));$("updated").textContent="Fetched "+new Date().toLocaleTimeString();$("candleTime").textContent="Last 1H candle closed "+new Date(a.stamp).toLocaleString();}
+  }
+
+  return{
+    c,px,rr,volume,volRatio,trend,
+    e20:e20[last],e50:e50[last],e200:e200[last],
+    av,stop,target:tp1,entry,tp1,tp2,rr1,rr2,
+    support,resistance,poc,state,breakout,
+    buyChecks,sellChecks,
+    stamp:c[last].closeTime,stamp4:d.at(-1).closeTime
+  };
+}
+
+let previousLivePrice=null;
+let previousSymbol=null;
+
+function show(a,symbol,live){
+  $("signal").textContent=a.state;
+  $("signal").className="signal "+a.state.toLowerCase();
+  $("price").textContent="$"+fmt(live);
+
+  let movement="";
+  if(previousSymbol===symbol&&previousLivePrice!==null){
+    let change=live-previousLivePrice;
+    let pct=change/previousLivePrice*100;
+    movement=change>0?` <span style="color:var(--green)">↑ +${pct.toFixed(3)}%</span>`:change<0?` <span style="color:var(--red)">↓ ${pct.toFixed(3)}%</span>`:` <span style="color:var(--muted)">→ 0.000%</span>`;
+  }
+  previousLivePrice=live;
+  previousSymbol=symbol;
+
+  $("pairname").innerHTML=symbol.replace("USDT"," / USDT")+" · Live market price"+movement;
+  $("rsi").textContent="RSI 14: "+fmt(a.rr);
+  $("vol").textContent="Volume: "+fmt(a.volRatio)+"× avg";
+  $("trend").textContent="4H trend: "+a.trend;
+
+  $("entry").textContent=a.state==="WAIT"?"—":"$"+fmt(a.entry);
+  $("atr").textContent="$"+fmt(a.av);
+  $("stop").textContent=a.stop===null?"—":"$"+fmt(a.stop);
+  $("target").textContent=a.tp1===null?"—":"$"+fmt(a.tp1);
+  $("target2").textContent=a.tp2===null?"—":"$"+fmt(a.tp2);
+  $("rr1").textContent=a.rr1===null?"—":a.rr1.toFixed(2)+"R";
+  $("rr2").textContent=a.rr2===null?"—":a.rr2.toFixed(2)+"R";
+  $("support").textContent="$"+fmt(a.support);
+  $("resistance").textContent="$"+fmt(a.resistance);
+  $("poc").textContent="$"+fmt(a.poc);
+
+  $("indicators").innerHTML=[["EMA 20",a.e20],["EMA 50",a.e50],["EMA 200",a.e200]].map(([n,v])=>`<div class="rowitem"><span>${n}</span><span class="val">$${fmt(v)}</span></div>`).join("");
+
+  let conditions=[["4H trend bullish",a.trend==="Bullish"],["1H close > EMA20 > EMA50",a.px>a.e20&&a.e20>a.e50],["RSI between 50 and 68",a.rr>50&&a.rr<68],["Volume ≥ 1.15× 20-bar avg",a.volRatio>=1.15],["Close breaks prior 20-bar high",a.breakout]];
+  $("reasons").innerHTML=conditions.map(([n,ok])=>`<div class="rowitem"><span>${n}</span><span class="val ${ok?"ok":"bad"}">${ok?"PASS":"NOT MET"}</span></div>`).join("");
+
+  $("summary").textContent=a.state==="BUY"?"All example BUY conditions are currently met on finalized candles. This is not a recommendation or a validated strategy.":a.state==="SELL"?"Bearish conditions met under this prototype's rules. SELL is a bearish alert, not an instruction to short.":"No complete BUY or SELL setup under the current example rules. WAIT is a valid outcome.";
+
+  draw(a.c.slice(-90).map(x=>x.c));
+  $("updated").textContent="Fetched "+new Date().toLocaleTimeString();
+  $("candleTime").textContent="Last 1H candle closed "+new Date(a.stamp).toLocaleString();
+}
 function draw(vals){let can=$("chart"),r=can.getBoundingClientRect(),dpr=devicePixelRatio||1;can.width=r.width*dpr;can.height=r.height*dpr;let ctx=can.getContext("2d");ctx.scale(dpr,dpr);let w=r.width,h=r.height,pad=10,min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;ctx.strokeStyle="#26354c";ctx.lineWidth=1;for(let i=0;i<4;i++){let y=pad+i*(h-2*pad)/3;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}ctx.beginPath();vals.forEach((v,i)=>{let x=i/(vals.length-1)*w,y=h-pad-(v-min)/range*(h-2*pad);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.strokeStyle="#43d6a0";ctx.lineWidth=2;ctx.stroke();ctx.lineTo(w,h-pad);ctx.lineTo(0,h-pad);ctx.closePath();ctx.fillStyle="rgba(67,214,160,.08)";ctx.fill()}
 async function scan(symbol=$("pair").value,quiet=false){if(!quiet){$("refresh").disabled=true;$("status").textContent="Fetching public market candles…";$("status").className="status"}try{let [h1,h4,live]=await Promise.all([candles(symbol,"1h"),candles(symbol,"4h"),livePrice(symbol)]);let a=analyze(h1,h4);if(!quiet)show(a,symbol,live);return {...a,live}}catch(e){if(!quiet){$("status").textContent=e.message;$("status").className="status error";$("signal").textContent="DATA ERROR";$("signal").className="signal wait"}throw e}finally{if(!quiet)$("refresh").disabled=false}}
 $("refresh").addEventListener("click",async()=>{try{await scan()}catch{}});
