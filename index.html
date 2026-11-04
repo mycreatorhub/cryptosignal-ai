@@ -256,7 +256,7 @@ function show(a,symbol,live){
 }
 function draw(vals){let can=$("chart"),r=can.getBoundingClientRect(),dpr=devicePixelRatio||1;can.width=r.width*dpr;can.height=r.height*dpr;let ctx=can.getContext("2d");ctx.scale(dpr,dpr);let w=r.width,h=r.height,pad=10,min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;ctx.strokeStyle="#26354c";ctx.lineWidth=1;for(let i=0;i<4;i++){let y=pad+i*(h-2*pad)/3;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}ctx.beginPath();vals.forEach((v,i)=>{let x=i/(vals.length-1)*w,y=h-pad-(v-min)/range*(h-2*pad);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.strokeStyle="#43d6a0";ctx.lineWidth=2;ctx.stroke();ctx.lineTo(w,h-pad);ctx.lineTo(0,h-pad);ctx.closePath();ctx.fillStyle="rgba(67,214,160,.08)";ctx.fill()}
 function drawVolumeProfile(candles,live){
-
+let can=$("volumeProfile");
   let r=can.getBoundingClientRect();
   let dpr=window.devicePixelRatio||1;
   if(!r.width||!r.height)return;
