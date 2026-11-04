@@ -72,6 +72,12 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
   </div>
   <div class="profilebox">
     <div class="profiletitle">VOLUME PROFILE</div>
+    <div style="font-size:8px;display:flex;justify-content:space-around;gap:3px;margin-bottom:5px;">
+  <span style="color:#f5c451">● POC</span>
+  <span style="color:#43d6a0">● HVN</span>
+  <span style="color:#e06b75">● LVN</span>
+  <span style="color:#5689bd">● NORMAL</span>
+    </div>
     <canvas id="volumeProfile" aria-label="Estimated volume profile"></canvas>
   </div>
 </div>
@@ -286,6 +292,9 @@ let can=$("volumeProfile");
   });
 
   let maxVol=Math.max(...volumes)||1;
+  let avgVol=volumes.reduce((a,b)=>a+b,0)/bins;
+let hvnThreshold=avgVol*1.5;
+let lvnThreshold=avgVol*0.5;
 let pocIndex=volumes.indexOf(maxVol);
   let pocPrice=low+(pocIndex+0.5)*step;
 let w=r.width,h=r.height;
@@ -312,7 +321,15 @@ for(let i=0;i<bins;i++){
   for(let i=0;i<bins;i++){
     let y=h-(i+1)*rowH;
     let barW=(volumes[i]/maxVol)*(barArea-3);
-    ctx.fillStyle=i===pocIndex?"#f5c451":"#5689bd";
+    if(i===pocIndex){
+  ctx.fillStyle="#f5c451";
+}else if(volumes[i]>=hvnThreshold){
+  ctx.fillStyle="#43d6a0";
+}else if(volumes[i]<=lvnThreshold){
+  ctx.fillStyle="#e06b75";
+}else{
+  ctx.fillStyle="#5689bd";
+}
     ctx.fillRect(0,y,barW,Math.max(1,rowH-1));
   }
 
