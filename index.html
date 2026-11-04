@@ -84,6 +84,11 @@ function show(a,symbol,live){$("signal").textContent=a.state;$("signal").classNa
 function draw(vals){let can=$("chart"),r=can.getBoundingClientRect(),dpr=devicePixelRatio||1;can.width=r.width*dpr;can.height=r.height*dpr;let ctx=can.getContext("2d");ctx.scale(dpr,dpr);let w=r.width,h=r.height,pad=10,min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;ctx.strokeStyle="#26354c";ctx.lineWidth=1;for(let i=0;i<4;i++){let y=pad+i*(h-2*pad)/3;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}ctx.beginPath();vals.forEach((v,i)=>{let x=i/(vals.length-1)*w,y=h-pad-(v-min)/range*(h-2*pad);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.strokeStyle="#43d6a0";ctx.lineWidth=2;ctx.stroke();ctx.lineTo(w,h-pad);ctx.lineTo(0,h-pad);ctx.closePath();ctx.fillStyle="rgba(67,214,160,.08)";ctx.fill()}
 async function scan(symbol=$("pair").value,quiet=false){if(!quiet){$("refresh").disabled=true;$("status").textContent="Fetching public market candles…";$("status").className="status"}try{let [h1,h4,live]=await Promise.all([candles(symbol,"1h"),candles(symbol,"4h"),livePrice(symbol)]);let a=analyze(h1,h4);if(!quiet)show(a,symbol,live);return {...a,live}}catch(e){if(!quiet){$("status").textContent=e.message;$("status").className="status error";$("signal").textContent="DATA ERROR";$("signal").className="signal wait"}throw e}finally{if(!quiet)$("refresh").disabled=false}}
 $("refresh").addEventListener("click",async()=>{try{await scan()}catch{}});
+  setInterval(async()=>{
+  try{
+    await scan();
+  }catch(e){}
+},30000);
 $("pair").addEventListener("change",async()=>{try{await scan()}catch{}});
 $("watchscan").addEventListener("click",async()=>{let b=$("watchscan");b.disabled=true;b.textContent="Scanning…";$("watchbody").innerHTML="";for(let sym of ["BTCUSDT","ETHUSDT","SOLUSDT"]){try{let a=await scan(sym,true);let tr=document.createElement("tr");tr.innerHTML=`<td>${sym.replace("USDT","")}</td><td>$${fmt(a.live)}</td><td class="${a.state==="BUY"?"ok":a.state==="SELL"?"bad":"warn"}">${a.state}</td><td>${fmt(a.rr)}</td><td>${a.trend}</td>`;$("watchbody").appendChild(tr)}catch(e){let tr=document.createElement("tr");tr.innerHTML=`<td>${sym.replace("USDT","")}</td><td colspan="4" class="warn">Data unavailable</td>`;$("watchbody").appendChild(tr)}}b.disabled=false;b.textContent="Scan watchlist";});
 </script></body></html>
