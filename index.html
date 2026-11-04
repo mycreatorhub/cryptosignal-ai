@@ -91,6 +91,14 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
 <div class="card half">
 <div class="sectionhead"><div class="label">Trade planning reference</div><span class="pill">Illustrative</span></div>
 <div class="rows">
+  <div class="rowitem">
+  <span>Smart Entry Zone</span>
+  <span class="val" id="entryZone">—</span>
+</div>
+<div class="rowitem">
+  <span>Volume Area</span>
+  <span class="val" id="volumeArea">—</span>
+</div>
 <div class="rowitem"><span>Entry reference</span><span class="val" id="entry">—</span></div>
 <div class="rowitem"><span>Stop loss</span><span class="val" id="stop">—</span></div>
 <div class="rowitem"><span>Take profit 1</span><span class="val" id="target">—</span></div>
@@ -174,6 +182,26 @@ function analyze(one,four){
   }
 
   let pocIndex=profile.indexOf(Math.max(...profile));
+  let avgProfileVol=profile.reduce((a,b)=>a+b,0)/bins;
+let hvnLevels=[];
+let lvnLevels=[];
+
+for(let i=0;i<bins;i++){
+  let level=low+(i+0.5)*step;
+
+  if(profile[i]>=avgProfileVol*1.5){
+    hvnLevels.push(level);
+  }
+
+  if(profile[i]<=avgProfileVol*0.5){
+    lvnLevels.push(level);
+  }
+}
+  let nearestHVN=hvnLevels
+  .sort((a,b)=>Math.abs(a-px)-Math.abs(b-px))[0]||poc;
+
+let nearestLVN=lvnLevels
+  .sort((a,b)=>Math.abs(a-px)-Math.abs(b-px))[0]||poc;
   let poc=step>0?low+(pocIndex+0.5)*step:low;
 
   let supports=[],resistances=[];
@@ -186,7 +214,22 @@ function analyze(one,four){
   let resistance=resistances.filter(x=>x>px).sort((a,b)=>a-b)[0]||px+2*av;
 
   let entry=px,stop=null,tp1=null,tp2=null,rr1=null,rr2=null;
+let zoneLow=null,zoneHigh=null;
+let volumeArea="No clear volume area";
 
+if(state==="BUY"){
+  let candidate=nearestHVN<px?nearestHVN:poc;
+  zoneLow=candidate-0.25*av;
+  zoneHigh=candidate+0.25*av;
+  volumeArea="Potential BUY area";
+}
+
+if(state==="SELL"){
+  let candidate=nearestHVN>px?nearestHVN:poc;
+  zoneLow=candidate-0.25*av;
+  zoneHigh=candidate+0.25*av;
+  volumeArea="Potential SELL area";
+}
   if(state==="BUY"){
     stop=Math.min(px-1.5*av,support-0.25*av);
     let risk=entry-stop;
@@ -206,6 +249,7 @@ function analyze(one,four){
   }
 
   return{
+    zoneLow,zoneHigh,volumeArea,nearestHVN,nearestLVN,
     c,px,rr,volume,volRatio,trend,
     e20:e20[last],e50:e50[last],e200:e200[last],
     av,stop,target:tp1,entry,tp1,tp2,rr1,rr2,
@@ -238,6 +282,8 @@ function show(a,symbol,live){
   $("trend").textContent="4H trend: "+a.trend;
 
   $("entry").textContent=a.state==="WAIT"?"—":"$"+fmt(a.entry);
+  $("entryZone").textContent=a.zoneLow===null?"—":"$"+fmt(a.zoneLow)+" - $"+fmt(a.zoneHigh);
+$("volumeArea").textContent=a.state==="WAIT"?"No active setup":a.volumeArea;
   $("atr").textContent="$"+fmt(a.av);
   $("stop").textContent=a.stop===null?"—":"$"+fmt(a.stop);
   $("target").textContent=a.tp1===null?"—":"$"+fmt(a.tp1);
