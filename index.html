@@ -66,6 +66,7 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
 <div class="signal wait" id="signal">WAIT</div>
 <div class="price" id="price">—</div><div class="meta" id="pairname">Live market price · —</div>
 <div class="chips"><span class="chip" id="rsi">RSI 14: —</span><span class="chip" id="vol">Volume: —</span><span class="chip" id="trend">4H trend: —</span><span class="chip" id="trend15">15m trend: —</span></div>
+<div class="card" style="margin-top:12px;padding:12px;background:#0b1525;border:1px solid #35506f"><div class="label" style="margin-bottom:8px">MULTI-TIMEFRAME CONFIRMATION</div><div class="chips" style="margin-top:0"><span class="chip" id="tf15">15 MIN: Waiting</span><span class="chip" id="tf1h">1 HOUR: Waiting</span><span class="chip" id="tf4h">4 HOUR: Waiting</span></div></div>
 <div class="chartlayout">
   <div class="chartbox">
     <canvas id="chart" aria-label="Recent closing prices"></canvas>
@@ -434,6 +435,9 @@ function show(a,symbol,live){
   $("vol").textContent="Volume: "+fmt(a.volRatio)+"× avg";
   $("trend").textContent="4H trend: "+a.trend;
   $("trend15").textContent="15m trend: "+a.trend15;
+  $("tf15").textContent="15 MIN: "+a.trend15;
+  $("tf1h").textContent="1 HOUR: "+(a.px>a.e20&&a.e20>a.e50?"Bullish":a.px<a.e20&&a.e20<a.e50?"Bearish":"Mixed");
+  $("tf4h").textContent="4 HOUR: "+a.trend;
 
   $("entry").textContent=a.state==="WAIT"?"—":"$"+fmt(a.entry);
   $("entryZone").textContent=a.zoneLow===null?"—":"$"+fmt(a.zoneLow)+" - $"+fmt(a.zoneHigh);
