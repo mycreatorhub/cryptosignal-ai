@@ -197,6 +197,17 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
     <div style="height:190px;margin-top:8px"><canvas id="backtestEquity" aria-label="Backtest equity curve"></canvas></div>
   </div>
   <div class="tablewrap"><table><thead><tr><th>Side</th><th>Trades</th><th>Win rate</th><th>Net return</th></tr></thead><tbody id="backtestSideBody"><tr><td colspan="4">Run a backtest to see BUY and SELL results.</td></tr></tbody></table></div>
+  <div class="card" style="margin-top:12px;background:#0b1525">
+    <div class="label">Signal condition diagnostics</div>
+    <div class="meta" style="margin-top:5px">Counts every eligible 1H candle in the selected period, including candles while a simulated trade would be open. These are condition matches, not separate trades.</div>
+    <div class="chips" style="margin-top:10px">
+      <span class="chip" id="diagBars">Evaluated bars: —</span>
+      <span class="chip" id="diagBuySetups">BUY setups: —</span>
+      <span class="chip" id="diagSellSetups">SELL setups: —</span>
+      <span class="chip" id="diagWaitBars">WAIT bars: —</span>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>Direction</th><th>Condition</th><th>Passed</th><th>Pass rate</th></tr></thead><tbody id="backtestDiagnosticBody"><tr><td colspan="4">Run a backtest to diagnose the entry filters.</td></tr></tbody></table></div>
+  </div>
   <div class="tablewrap"><table><thead><tr><th>Entry time</th><th>Side</th><th>Entry</th><th>Exit</th><th>Exit reason</th><th>Net %</th></tr></thead><tbody id="backtestBody"><tr><td colspan="6">No backtest has been run.</td></tr></tbody></table></div>
   <div class="note">Simulation rules: signal at a completed 1H close; exits are checked on later 1H candles for up to 48 hours. If stop and target are both touched in one candle, stop is counted first. Net return deducts an assumed 0.1% fee per side (0.2% round trip); slippage is not included. The sample is limited by available exchange candles. Historical results do not predict future performance.</div>
 </div>
@@ -552,6 +563,41 @@ async function runHistoricalBacktest(){
     ]);
     if(h1.length<230||h4.length<55||m15.length<55)throw Error("Not enough finalized candles to run this historical period.");
     const cutoff=Date.now()-days*24*60*60*1000,trades=[];
+    const diagnostic={
+      bars:0,buySetups:0,sellSetups:0,waitBars:0,
+      buy:Array(8).fill(0),sell:Array(7).fill(0)
+    };
+    const buyLabels=["4H trend bullish","1H close > EMA20 > EMA50","RSI between 50 and 68","Volume ≥ 1.15× average","Breakout above prior 20-bar high","15m trend bullish","Volatility within range","Higher highs and higher lows"];
+    const sellLabels=["4H trend bearish","1H close < EMA20 < EMA50","RSI below 47","15m trend bearish","Breakdown below prior 20-bar low","Volatility within range","Lower highs and lower lows"];
+    // First pass: diagnose every eligible candle without the trade-overlap restriction.
+    for(let i=204;i<h1.length-1;i++){
+      const signalCandle=h1[i];
+      if(signalCandle.closeTime<cutoff)continue;
+      const one=h1.slice(0,i+1);
+      const four=h4.filter(x=>x.closeTime<=signalCandle.closeTime);
+      const fifteen=m15.filter(x=>x.closeTime<=signalCandle.closeTime);
+      if(four.length<55||fifteen.length<55)continue;
+      let a;try{a=analyze(one,four,fifteen)}catch(e){continue}
+      diagnostic.bars++;
+      a.buyChecks.forEach((ok,j)=>{if(ok)diagnostic.buy[j]++});
+      a.sellChecks.forEach((ok,j)=>{if(ok)diagnostic.sell[j]++});
+      if(a.state==="BUY")diagnostic.buySetups++;
+      else if(a.state==="SELL")diagnostic.sellSetups++;
+      else diagnostic.waitBars++;
+    }
+    const diagnosticRows=[
+      ...buyLabels.map((label,i)=>({side:"BUY",label,passed:diagnostic.buy[i]})),
+      ...sellLabels.map((label,i)=>({side:"SELL",label,passed:diagnostic.sell[i]}))
+    ];
+    $("diagBars").textContent="Evaluated bars: "+diagnostic.bars;
+    $("diagBuySetups").textContent="BUY setups: "+diagnostic.buySetups;
+    $("diagSellSetups").textContent="SELL setups: "+diagnostic.sellSetups;
+    $("diagWaitBars").textContent="WAIT bars: "+diagnostic.waitBars;
+    $("backtestDiagnosticBody").innerHTML=diagnosticRows.map(row=>{
+      const rate=diagnostic.bars?row.passed/diagnostic.bars*100:0;
+      return `<tr><td class="${row.side==="BUY"?"ok":"bad"}">${row.side}</td><td>${row.label}</td><td>${row.passed} / ${diagnostic.bars}</td><td>${rate.toFixed(1)}%</td></tr>`;
+    }).join("");
+    // Second pass: simulate non-overlapping trades for performance metrics.
     let nextAllowedIndex=205;
     for(let i=204;i<h1.length-1;i++){
       if(i<nextAllowedIndex)continue;
