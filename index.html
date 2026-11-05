@@ -218,8 +218,69 @@ function renderPerformance(){
     `<tr><td colspan="5">No recorded signals yet.</td></tr>`;
 }
 
-renderPerformance();
 const fmt=n=>Number.isFinite(n)?n.toLocaleString("en-US",{maximumFractionDigits:n>=100?2:5}):"—";
+
+function recordSignal(a,symbol){
+  if(a.state!=="BUY" && a.state!=="SELL") return;
+  if(!Number.isFinite(a.entry) || !Number.isFinite(a.stop) || !Number.isFinite(a.tp1)) return;
+
+  let history=getHistory();
+  let id=symbol+"_"+a.state+"_"+a.stamp;
+  if(history.some(x=>x.id===id)) return;
+
+  history.push({
+    id,
+    date:Date.now(),
+    symbol,
+    signal:a.state,
+    entry:a.entry,
+    stop:a.stop,
+    target:a.tp1,
+    result:"PENDING",
+    lastChecked:a.stamp
+  });
+
+  saveHistory(history);
+  renderPerformance();
+}
+
+function updateSignalResults(a,symbol){
+  let history=getHistory();
+  let changed=false;
+
+  history.forEach(trade=>{
+    if(trade.symbol!==symbol || trade.result!=="PENDING") return;
+
+    let candles=a.c.filter(c=>c.closeTime>trade.lastChecked);
+    candles.forEach(c=>{
+      if(trade.result!=="PENDING") return;
+
+      if(trade.signal==="BUY"){
+        if(c.l<=trade.stop){
+          trade.result="LOSS";
+          changed=true;
+        }else if(c.h>=trade.target){
+          trade.result="WIN";
+          changed=true;
+        }
+      }else if(trade.signal==="SELL"){
+        if(c.h>=trade.stop){
+          trade.result="LOSS";
+          changed=true;
+        }else if(c.l<=trade.target){
+          trade.result="WIN";
+          changed=true;
+        }
+      }
+      trade.lastChecked=c.closeTime;
+    });
+  });
+
+  saveHistory(history);
+  if(changed) renderPerformance();
+}
+
+renderPerformance();
 function ema(values,period){let k=2/(period+1),out=[];let seed=values.slice(0,period).reduce((a,b)=>a+b,0)/period;out[period-1]=seed;for(let i=period;i<values.length;i++)out[i]=values[i]*k+out[i-1]*(1-k);return out}
 function rsi(vals,p=14){let gains=0,losses=0;for(let i=1;i<=p;i++){let d=vals[i]-vals[i-1];gains+=Math.max(d,0);losses+=Math.max(-d,0)}let ag=gains/p,al=losses/p;for(let i=p+1;i<vals.length;i++){let d=vals[i]-vals[i-1];ag=(ag*(p-1)+Math.max(d,0))/p;al=(al*(p-1)+Math.max(-d,0))/p}return al===0?100:100-100/(1+ag/al)}
 function atr(c,p=14){let ts=c.map((x,i)=>i?Math.max(x[2]-x[3],Math.abs(x[2]-c[i-1][4]),Math.abs(x[3]-c[i-1][4])):x[2]-x[3]);return ts.slice(-p).reduce((a,b)=>a+b,0)/p}
@@ -272,6 +333,7 @@ function analyze(one,four){
   }
 
   let pocIndex=profile.indexOf(Math.max(...profile));
+  let poc=step>0?low+(pocIndex+0.5)*step:low;
   let avgProfileVol=profile.reduce((a,b)=>a+b,0)/bins;
 let hvnLevels=[];
 let lvnLevels=[];
@@ -292,7 +354,6 @@ for(let i=0;i<bins;i++){
 
 let nearestLVN=lvnLevels
   .sort((a,b)=>Math.abs(a-px)-Math.abs(b-px))[0]||poc;
-  let poc=step>0?low+(pocIndex+0.5)*step:low;
 
   let supports=[],resistances=[];
   for(let i=Math.max(2,c.length-100);i<c.length-2;i++){
@@ -484,7 +545,7 @@ ctx.fillText("LIVE: "+live.toFixed(2),2,14);
     ctx.stroke();
   }
 }
-async function scan(symbol=$("pair").value,quiet=false){if(!quiet){$("refresh").disabled=true;$("status").textContent="Fetching public market candles…";$("status").className="status"}try{let [h1,h4,live]=await Promise.all([candles(symbol,"1h"),candles(symbol,"4h"),livePrice(symbol)]);let a=analyze(h1,h4);if(!quiet)show(a,symbol,live);return {...a,live}}catch(e){if(!quiet){$("status").textContent=e.message;$("status").className="status error";$("signal").textContent="DATA ERROR";$("signal").className="signal wait"}throw e}finally{if(!quiet)$("refresh").disabled=false}}
+async function scan(symbol=$("pair").value,quiet=false){if(!quiet){$("refresh").disabled=true;$("status").textContent="Fetching public market candles…";$("status").className="status"}try{let [h1,h4,live]=await Promise.all([candles(symbol,"1h"),candles(symbol,"4h"),livePrice(symbol)]);let a=analyze(h1,h4);updateSignalResults(a,symbol);recordSignal(a,symbol);if(!quiet)show(a,symbol,live);return {...a,live}}catch(e){if(!quiet){$("status").textContent=e.message;$("status").className="status error";$("signal").textContent="DATA ERROR";$("signal").className="signal wait"}throw e}finally{if(!quiet)$("refresh").disabled=false}}
 $("refresh").addEventListener("click",async()=>{try{await scan()}catch{}});
   setInterval(async()=>{
   try{
