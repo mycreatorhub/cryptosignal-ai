@@ -384,7 +384,7 @@ function analyzeSMC(five,m15){
   if(!fvg){setup={side,stage:"Waiting for displacement / FVG",sweepExtreme,liquidityLevel,mssIndex,mssLevel};continue}
   let retestIndex=-1;
   for(let r=fvg.index+1;r<n;r++)if(c[r].l<=fvg.high&&c[r].h>=fvg.low){retestIndex=r;break}
-  setup={side,stage:retestIndex===n-1?"FVG retest active":"Waiting for FVG retest",sweepExtreme,liquidityLevel,mssIndex,mssLevel,fvg,retestIndex};
+  setup={side,stage:retestIndex===n-1?"FVG retest active":retestIndex>=0?"FVG retest passed — waiting for a new setup":"Waiting for FVG retest",sweepExtreme,liquidityLevel,mssIndex,mssLevel,fvg,retestIndex};
  }
  const stage=setup?setup.stage:"Waiting for liquidity sweep";
  const side=setup?setup.side:null,ready=!!setup&&setup.stage==="FVG retest active";
@@ -407,6 +407,142 @@ function analyzeSMC(five,m15){
  const strength=ready?100:setup&&setup.fvg?80:setup&&setup.mssIndex!==undefined?60:setup?35:0;
  return {c,px,rr:null,volRatio:null,trend:bias,trend15:bias,atrPct:av/px*100,volatilityOK:true,bullishStructure:false,bearishStructure:false,breakdown:false,e20:null,e50:null,e200:null,av,stop,entry,tp1,tp2,rr1,rr2,support:setup?setup.liquidityLevel:null,resistance:setup?setup.liquidityLevel:null,poc:null,state,breakout:false,buyChecks,sellChecks,buyStrength:Math.round(buyChecks.filter(Boolean).length/5*100),sellStrength:Math.round(sellChecks.filter(Boolean).length/5*100),strength,strengthSide:side||"—",stamp:c[last].closeTime,zoneLow:setup&&setup.fvg?setup.fvg.low:null,zoneHigh:setup&&setup.fvg?setup.fvg.high:null,volumeArea:setup&&setup.fvg?"FVG retracement zone":"No active FVG",setupStage:stage,setupSide:side,liquidityLevel:setup?setup.liquidityLevel:null,sweepExtreme:setup?setup.sweepExtreme:null,mssLevel:setup?setup.mssLevel:null,fvgLow:setup&&setup.fvg?setup.fvg.low:null,fvgHigh:setup&&setup.fvg?setup.fvg.high:null,bias,displacement:!!(setup&&setup.fvg)};
 }
+
+function analyze(one,four,fifteen){
+  let c=closedOnly(one),d=closedOnly(four),m=closedOnly(fifteen);
+  if(c.length<205||d.length<55||m.length<55)throw Error("Waiting for sufficient finalized candle history.");
+
+  let close=c.map(x=>x.c),cl4=d.map(x=>x.c);
+  let e20=ema(close,20),e50=ema(close,50),e200=ema(close,200);
+  let e4_20=ema(cl4,20),e4_50=ema(cl4,50);
+  let last=close.length-1,px=close[last],rr=rsi(close);
+  let volume=c[last].v;
+  let volBase=c.slice(-21,-1).reduce((s,x)=>s+x.v,0)/20;
+  let volRatio=volume/volBase;
+
+  let trend=e4_20.at(-1)>e4_50.at(-1)&&cl4.at(-1)>e4_50.at(-1)?"Bullish":e4_20.at(-1)<e4_50.at(-1)&&cl4.at(-1)<e4_50.at(-1)?"Bearish":"Mixed";
+  let close15=m.map(x=>x.c),e15_20=ema(close15,20),e15_50=ema(close15,50),last15=close15.length-1;
+  let trend15=e15_20[last15]>e15_50[last15]&&close15[last15]>e15_20[last15]?"Bullish":e15_20[last15]<e15_50[last15]&&close15[last15]<e15_20[last15]?"Bearish":"Mixed";
+  let previousHigh=Math.max(...c.slice(-21,-1).map(x=>x.h));
+  let breakout=px>previousHigh;
+
+  let trs=c.map((x,i)=>i?Math.max(x.h-x.l,Math.abs(x.h-c[i-1].c),Math.abs(x.l-c[i-1].c)):x.h-x.l);
+  let av=trs.slice(-14).reduce((a,b)=>a+b,0)/14;
+  let atrPct=av/px*100;
+  let volatilityOK=atrPct>=0.08&&atrPct<=3.5;
+
+  let recentStructure=c.slice(-20);
+  let priorStructure=recentStructure.slice(0,10),latestStructure=recentStructure.slice(10);
+  let priorHigh=Math.max(...priorStructure.map(x=>x.h));
+  let priorLow=Math.min(...priorStructure.map(x=>x.l));
+  let recentHigh=Math.max(...latestStructure.map(x=>x.h));
+  let recentLow=Math.min(...latestStructure.map(x=>x.l));
+  let bullishStructure=recentHigh>priorHigh&&recentLow>priorLow;
+  let bearishStructure=recentHigh<priorHigh&&recentLow<priorLow;
+  let previousLow=Math.min(...c.slice(-21,-1).map(x=>x.l));
+  let breakdown=px<previousLow;
+
+  let buyChecks=[trend==="Bullish",px>e20[last]&&e20[last]>e50[last],rr>50&&rr<68,volRatio>=1.15,breakout,trend15==="Bullish",volatilityOK,bullishStructure];
+  let sellChecks=[trend==="Bearish",px<e20[last]&&e20[last]<e50[last],rr<47,trend15==="Bearish",breakdown,volatilityOK,bearishStructure];
+  let buy=buyChecks.every(Boolean),sell=sellChecks.every(Boolean);
+  let state=buy?"BUY":sell?"SELL":"WAIT";
+
+  let recent=c.slice(-100);
+  let low=Math.min(...recent.map(x=>x.l));
+  let high=Math.max(...recent.map(x=>x.h));
+  let bins=24,step=(high-low)/bins;
+  let profile=Array(bins).fill(0);
+
+  if(step>0){
+    recent.forEach(x=>{
+      let typical=(x.h+x.l+x.c)/3;
+      let index=Math.min(bins-1,Math.max(0,Math.floor((typical-low)/step)));
+      profile[index]+=x.v;
+    });
+  }
+
+  let pocIndex=profile.indexOf(Math.max(...profile));
+  let poc=step>0?low+(pocIndex+0.5)*step:low;
+  let avgProfileVol=profile.reduce((a,b)=>a+b,0)/bins;
+let hvnLevels=[];
+let lvnLevels=[];
+
+for(let i=0;i<bins;i++){
+  let level=low+(i+0.5)*step;
+
+  if(profile[i]>=avgProfileVol*1.5){
+    hvnLevels.push(level);
+  }
+
+  if(profile[i]<=avgProfileVol*0.5){
+    lvnLevels.push(level);
+  }
+}
+  let nearestHVN=hvnLevels
+  .sort((a,b)=>Math.abs(a-px)-Math.abs(b-px))[0]||poc;
+
+let nearestLVN=lvnLevels
+  .sort((a,b)=>Math.abs(a-px)-Math.abs(b-px))[0]||poc;
+
+  let supports=[],resistances=[];
+  for(let i=Math.max(2,c.length-100);i<c.length-2;i++){
+    if(c[i].l<c[i-1].l&&c[i].l<c[i-2].l&&c[i].l<c[i+1].l&&c[i].l<c[i+2].l)supports.push(c[i].l);
+    if(c[i].h>c[i-1].h&&c[i].h>c[i-2].h&&c[i].h>c[i+1].h&&c[i].h>c[i+2].h)resistances.push(c[i].h);
+  }
+
+  let support=supports.filter(x=>x<px).sort((a,b)=>b-a)[0]||px-2*av;
+  let resistance=resistances.filter(x=>x>px).sort((a,b)=>a-b)[0]||px+2*av;
+
+  let entry=px,stop=null,tp1=null,tp2=null,rr1=null,rr2=null;
+let zoneLow=null,zoneHigh=null;
+let volumeArea="No clear volume area";
+
+if(state==="BUY"){
+  let candidate=nearestHVN<px?nearestHVN:poc;
+  zoneLow=candidate-0.25*av;
+  zoneHigh=candidate+0.25*av;
+  volumeArea="Potential BUY area";
+}
+
+if(state==="SELL"){
+  let candidate=nearestHVN>px?nearestHVN:poc;
+  zoneLow=candidate-0.25*av;
+  zoneHigh=candidate+0.25*av;
+  volumeArea="Potential SELL area";
+}
+  if(state==="BUY"){
+    stop=Math.min(px-1.5*av,support-0.25*av);
+    let risk=entry-stop;
+    tp1=resistance>entry+0.5*risk?resistance:entry+2*risk;
+    tp2=Math.max(entry+3*risk,tp1+0.5*risk);
+    rr1=(tp1-entry)/risk;
+    rr2=(tp2-entry)/risk;
+  }
+
+  if(state==="SELL"){
+    stop=Math.max(px+1.5*av,resistance+0.25*av);
+    let risk=stop-entry;
+    tp1=support<entry-0.5*risk?support:entry-2*risk;
+    tp2=Math.min(entry-3*risk,tp1-0.5*risk);
+    rr1=(entry-tp1)/risk;
+    rr2=(entry-tp2)/risk;
+  }
+
+  return{
+    zoneLow,zoneHigh,volumeArea,nearestHVN,nearestLVN,
+    c,px,rr,volume,volRatio,trend,trend15,atrPct,volatilityOK,bullishStructure,bearishStructure,breakdown,
+    e20:e20[last],e50:e50[last],e200:e200[last],
+    av,stop,target:tp1,entry,tp1,tp2,rr1,rr2,
+    support,resistance,poc,state,breakout,
+    buyChecks,sellChecks,
+    buyStrength:Math.round(buyChecks.filter(Boolean).length/buyChecks.length*100),
+    sellStrength:Math.round(sellChecks.filter(Boolean).length/sellChecks.length*100),
+    strength:Math.round(Math.max(buyChecks.filter(Boolean).length/buyChecks.length,sellChecks.filter(Boolean).length/sellChecks.length)*100),
+    strengthSide:buyChecks.filter(Boolean).length/buyChecks.length>=sellChecks.filter(Boolean).length/sellChecks.length?"BUY":"SELL",
+    stamp:c[last].closeTime,stamp4:d.at(-1).closeTime
+  };
+}
+
 
 async function fetchBacktestCandlesRange(symbol,interval,days){
   const intervalMs={"15m":15*60*1000,"1h":60*60*1000,"4h":4*60*60*1000}[interval];
