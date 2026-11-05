@@ -178,6 +178,21 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
     </table>
   </div>
   </div>
+
+<div class="card wide" id="backtestCard">
+  <div class="sectionhead"><div><div class="label">Historical Backtesting</div><div class="meta">Test the current rules against past Binance candles · separate from live paper tracking</div></div><span class="pill">EXPERIMENTAL</span></div>
+  <div class="controls"><select id="backtestPair" aria-label="Backtest asset"><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option><option value="SOLUSDT">SOL / USDT</option></select><button id="runBacktest">Run backtest</button></div>
+  <div class="status" id="backtestStatus">Choose an asset and run the historical test.</div>
+  <div class="grid" style="margin-top:12px">
+    <div class="card half"><div class="label">Completed trades</div><div class="price" id="btTrades">—</div></div>
+    <div class="card half"><div class="label">Win rate</div><div class="price" id="btWinRate">—</div></div>
+    <div class="card half"><div class="label">Net return</div><div class="price" id="btReturn">—</div></div>
+    <div class="card half"><div class="label">Max drawdown</div><div class="price" id="btDrawdown">—</div></div>
+  </div>
+  <div class="tablewrap"><table><thead><tr><th>Entry time</th><th>Side</th><th>Entry</th><th>Exit</th><th>Result</th><th>Net %</th></tr></thead><tbody id="backtestBody"><tr><td colspan="6">No backtest has been run.</td></tr></tbody></table></div>
+  <div class="note">Simulation rules: signal at a completed 1H close; exits are checked on later 1H candles for up to 48 hours. If stop and target are both touched in one candle, stop is counted first. Net return deducts an assumed 0.1% fee per side (0.2% round trip); slippage is not included. The sample is limited by available exchange candles. Historical results do not predict future performance.</div>
+</div>
+
 <div class="card wide disclaimer"><strong>Testing warning</strong><br>Experimental educational software. Signals can be wrong, delayed, incomplete, or unavailable. No profitability claims. Crypto trading can cause substantial losses. This demo uses public exchange market data and does not connect to accounts, execute trades, or collect personal information.</div>
 </section>
 <div class="foot">CryptoSignal AI MVP · Experimental signal rules · Market data availability depends on exchange API access.</div>
