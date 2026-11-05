@@ -181,15 +181,23 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
 
 <div class="card wide" id="backtestCard">
   <div class="sectionhead"><div><div class="label">Historical Backtesting</div><div class="meta">Test the current rules against past Binance candles · separate from live paper tracking</div></div><span class="pill">EXPERIMENTAL</span></div>
-  <div class="controls"><select id="backtestPair" aria-label="Backtest asset"><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option><option value="SOLUSDT">SOL / USDT</option></select><button id="runBacktest">Run backtest</button></div>
+  <div class="controls"><select id="backtestPair" aria-label="Backtest asset"><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option><option value="SOLUSDT">SOL / USDT</option></select><select id="backtestPeriod" aria-label="Backtest period"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option></select><button id="runBacktest">Run backtest</button></div>
   <div class="status" id="backtestStatus">Choose an asset and run the historical test.</div>
   <div class="grid" style="margin-top:12px">
     <div class="card half"><div class="label">Completed trades</div><div class="price" id="btTrades">—</div></div>
     <div class="card half"><div class="label">Win rate</div><div class="price" id="btWinRate">—</div></div>
     <div class="card half"><div class="label">Net return</div><div class="price" id="btReturn">—</div></div>
     <div class="card half"><div class="label">Max drawdown</div><div class="price" id="btDrawdown">—</div></div>
+    <div class="card half"><div class="label">Profit factor</div><div class="price" id="btProfitFactor">—</div></div>
+    <div class="card half"><div class="label">Average win</div><div class="price ok" id="btAvgWin">—</div></div>
+    <div class="card half"><div class="label">Average loss</div><div class="price bad" id="btAvgLoss">—</div></div>
   </div>
-  <div class="tablewrap"><table><thead><tr><th>Entry time</th><th>Side</th><th>Entry</th><th>Exit</th><th>Result</th><th>Net %</th></tr></thead><tbody id="backtestBody"><tr><td colspan="6">No backtest has been run.</td></tr></tbody></table></div>
+  <div class="card" style="margin-top:12px;background:#0b1525">
+    <div class="label">Equity curve · compounded net return</div>
+    <div style="height:190px;margin-top:8px"><canvas id="backtestEquity" aria-label="Backtest equity curve"></canvas></div>
+  </div>
+  <div class="tablewrap"><table><thead><tr><th>Side</th><th>Trades</th><th>Win rate</th><th>Net return</th></tr></thead><tbody id="backtestSideBody"><tr><td colspan="4">Run a backtest to see BUY and SELL results.</td></tr></tbody></table></div>
+  <div class="tablewrap"><table><thead><tr><th>Entry time</th><th>Side</th><th>Entry</th><th>Exit</th><th>Exit reason</th><th>Net %</th></tr></thead><tbody id="backtestBody"><tr><td colspan="6">No backtest has been run.</td></tr></tbody></table></div>
   <div class="note">Simulation rules: signal at a completed 1H close; exits are checked on later 1H candles for up to 48 hours. If stop and target are both touched in one candle, stop is counted first. Net return deducts an assumed 0.1% fee per side (0.2% round trip); slippage is not included. The sample is limited by available exchange candles. Historical results do not predict future performance.</div>
 </div>
 
@@ -456,90 +464,130 @@ if(state==="SELL"){
 }
 
 
-async function fetchBacktestCandles(symbol,interval,limit=1000){
-  const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-  const res=await fetch(url);
-  if(!res.ok)throw Error(`Binance returned ${res.status} for ${interval} candles.`);
-  const data=await res.json();
-  if(!Array.isArray(data))throw Error("Invalid historical candle response.");
-  return data.map(x=>({t:x[0],o:+x[1],h:+x[2],l:+x[3],c:+x[4],v:+x[5],closeTime:x[6]})).filter(x=>x.closeTime<Date.now());
+async function fetchBacktestCandlesRange(symbol,interval,days){
+  const intervalMs={"15m":15*60*1000,"1h":60*60*1000,"4h":4*60*60*1000}[interval];
+  if(!intervalMs)throw Error("Unsupported backtest timeframe.");
+  const now=Date.now();
+  // Ten days of warm-up lets the strategy calculate its longest indicators.
+  const start=now-(days+10)*24*60*60*1000;
+  let cursor=start,all=[],pages=0;
+  while(cursor<now&&pages<16){
+    const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&startTime=${Math.floor(cursor)}&limit=1000`;
+    const res=await fetch(url);
+    if(!res.ok)throw Error(`Binance returned ${res.status} for ${interval} candles.`);
+    const data=await res.json();
+    if(!Array.isArray(data))throw Error("Invalid historical candle response.");
+    if(!data.length)break;
+    all.push(...data);
+    cursor=Number(data[data.length-1][0])+intervalMs;
+    pages++;
+    if(data.length<1000)break;
+  }
+  const unique=new Map();
+  all.forEach(x=>unique.set(x[0],{t:x[0],o:+x[1],h:+x[2],l:+x[3],c:+x[4],v:+x[5],closeTime:x[6]}));
+  return [...unique.values()].filter(x=>x.closeTime<now).sort((a,b)=>a.t-b.t);
+}
+
+function drawBacktestEquity(trades){
+  const can=$("backtestEquity"),r=can.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+  if(!r.width||!r.height)return;
+  can.width=r.width*dpr;can.height=r.height*dpr;
+  const ctx=can.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);
+  const w=r.width,h=r.height,pad=12;
+  ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle="#26354c";ctx.lineWidth=1;
+  for(let i=0;i<4;i++){const y=pad+i*(h-2*pad)/3;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+  let values=[100],equity=100;
+  trades.forEach(t=>{equity*=1+t.netPct/100;values.push(equity)});
+  const min=Math.min(...values,100),max=Math.max(...values,100),range=max-min||1;
+  ctx.beginPath();
+  values.forEach((v,i)=>{const x=values.length===1?0:i/(values.length-1)*w;const y=h-pad-(v-min)/range*(h-2*pad);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});
+  ctx.strokeStyle=equity>=100?"#43d6a0":"#ff6d7d";ctx.lineWidth=2;ctx.stroke();
+  const baseY=h-pad-(100-min)/range*(h-2*pad);
+  ctx.setLineDash([4,4]);ctx.strokeStyle="#91a0b9";ctx.beginPath();ctx.moveTo(0,baseY);ctx.lineTo(w,baseY);ctx.stroke();ctx.setLineDash([]);
 }
 
 function renderBacktest(trades){
-  const wins=trades.filter(t=>t.netPct>0).length;
-  const losses=trades.length-wins;
-  const winRate=trades.length?wins/trades.length*100:0;
+  const wins=trades.filter(t=>t.netPct>0),losses=trades.filter(t=>t.netPct<0);
+  const winRate=trades.length?wins.length/trades.length*100:0;
   let equity=1,peak=1,maxDD=0;
-  trades.forEach(t=>{
-    equity*=1+t.netPct/100;
-    peak=Math.max(peak,equity);
-    maxDD=Math.max(maxDD,(peak-equity)/peak*100);
-  });
+  trades.forEach(t=>{equity*=1+t.netPct/100;peak=Math.max(peak,equity);maxDD=Math.max(maxDD,(peak-equity)/peak*100)});
   const totalReturn=(equity-1)*100;
+  const grossProfit=wins.reduce((s,t)=>s+t.netPct,0);
+  const grossLoss=Math.abs(losses.reduce((s,t)=>s+t.netPct,0));
+  const profitFactor=grossLoss?grossProfit/grossLoss:(grossProfit?Infinity:0);
   $("btTrades").textContent=trades.length;
   $("btWinRate").textContent=winRate.toFixed(1)+"%";
   $("btReturn").textContent=(totalReturn>=0?"+":"")+totalReturn.toFixed(2)+"%";
   $("btReturn").className="price "+(totalReturn>=0?"ok":"bad");
   $("btDrawdown").textContent=maxDD.toFixed(2)+"%";
+  $("btProfitFactor").textContent=profitFactor===Infinity?"∞":profitFactor.toFixed(2);
+  $("btAvgWin").textContent=wins.length?"+"+(wins.reduce((s,t)=>s+t.netPct,0)/wins.length).toFixed(2)+"%":"—";
+  $("btAvgLoss").textContent=losses.length?(losses.reduce((s,t)=>s+t.netPct,0)/losses.length).toFixed(2)+"%":"—";
+  $("backtestSideBody").innerHTML=["BUY","SELL"].map(side=>{
+    const group=trades.filter(t=>t.side===side),sideWins=group.filter(t=>t.netPct>0).length;
+    let sideEquity=1;group.forEach(t=>sideEquity*=1+t.netPct/100);
+    return `<tr><td class="${side==="BUY"?"ok":"bad"}">${side}</td><td>${group.length}</td><td>${group.length?(sideWins/group.length*100).toFixed(1)+"%":"—"}</td><td class="${sideEquity>=1?"ok":"bad"}">${group.length?((sideEquity-1)*100>=0?"+":"")+((sideEquity-1)*100).toFixed(2)+"%":"—"}</td></tr>`;
+  }).join("");
   $("backtestBody").innerHTML=trades.length?trades.slice().reverse().map(t=>`<tr>
     <td>${new Date(t.time).toLocaleString()}</td><td class="${t.side==="BUY"?"ok":"bad"}">${t.side}</td>
-    <td>${fmt(t.entry)}</td><td>${fmt(t.exit)}</td><td>${t.result}</td>
+    <td>${fmt(t.entry)}</td><td>${fmt(t.exit)}</td><td>${t.exitReason}</td>
     <td class="${t.netPct>=0?"ok":"bad"}">${t.netPct>=0?"+":""}${t.netPct.toFixed(2)}%</td>
-  </tr>`).join(""):'<tr><td colspan="6">No completed trades were generated by these rules in the available sample.</td></tr>';
+  </tr>`).join(""):'<tr><td colspan="6">No completed trades were generated by these rules in the selected sample.</td></tr>';
+  drawBacktestEquity(trades);
 }
 
 async function runHistoricalBacktest(){
-  const button=$("runBacktest"),status=$("backtestStatus"),symbol=$("backtestPair").value;
-  button.disabled=true;button.textContent="Testing…";
-  status.textContent="Downloading historical candles from Binance…";
-  ["btTrades","btWinRate","btReturn","btDrawdown"].forEach(id=>$(id).textContent="—");
+  const button=$("runBacktest"),status=$("backtestStatus"),symbol=$("backtestPair").value,days=Number($("backtestPeriod").value);
+  button.disabled=true;button.textContent="Testing…";status.className="status";
+  status.textContent=`Downloading up to ${days} days of historical candles from Binance…`;
+  ["btTrades","btWinRate","btReturn","btDrawdown","btProfitFactor","btAvgWin","btAvgLoss"].forEach(id=>$(id).textContent="—");
   $("backtestBody").innerHTML='<tr><td colspan="6">Calculating historical signals…</td></tr>';
+  $("backtestSideBody").innerHTML='<tr><td colspan="4">Calculating BUY and SELL performance…</td></tr>';
   try{
     const [m15,h1,h4]=await Promise.all([
-      fetchBacktestCandles(symbol,"15m",1000),
-      fetchBacktestCandles(symbol,"1h",1000),
-      fetchBacktestCandles(symbol,"4h",1000)
+      fetchBacktestCandlesRange(symbol,"15m",days),
+      fetchBacktestCandlesRange(symbol,"1h",days),
+      fetchBacktestCandlesRange(symbol,"4h",days)
     ]);
-    if(h1.length<230||h4.length<55||m15.length<55)throw Error("Not enough finalized candles to run a reliable test.");
-    const trades=[];
+    if(h1.length<230||h4.length<55||m15.length<55)throw Error("Not enough finalized candles to run this historical period.");
+    const cutoff=Date.now()-days*24*60*60*1000,trades=[];
     let nextAllowedIndex=205;
     for(let i=204;i<h1.length-1;i++){
       if(i<nextAllowedIndex)continue;
       const signalCandle=h1[i];
+      if(signalCandle.closeTime<cutoff)continue;
       const one=h1.slice(0,i+1);
       const four=h4.filter(x=>x.closeTime<=signalCandle.closeTime);
       const fifteen=m15.filter(x=>x.closeTime<=signalCandle.closeTime);
       if(four.length<55||fifteen.length<55)continue;
-      let a;
-      try{a=analyze(one,four,fifteen)}catch(e){continue}
+      let a;try{a=analyze(one,four,fifteen)}catch(e){continue}
       if(a.state!=="BUY"&&a.state!=="SELL")continue;
       if(!Number.isFinite(a.stop)||!Number.isFinite(a.tp1)||!Number.isFinite(a.entry))continue;
-      let exit=null,result="TIME EXIT",exitIndex=Math.min(h1.length-1,i+48);
+      let exit=null,exitReason="TIME EXIT",exitIndex=Math.min(h1.length-1,i+48);
       for(let j=i+1;j<=exitIndex;j++){
-        const c=h1[j];
+        const candle=h1[j];
         if(a.state==="BUY"){
-          if(c.l<=a.stop){exit=a.stop;result="LOSS";exitIndex=j;break}
-          if(c.h>=a.tp1){exit=a.tp1;result="WIN";exitIndex=j;break}
+          if(candle.l<=a.stop){exit=a.stop;exitReason="STOP";exitIndex=j;break}
+          if(candle.h>=a.tp1){exit=a.tp1;exitReason="TARGET";exitIndex=j;break}
         }else{
-          if(c.h>=a.stop){exit=a.stop;result="LOSS";exitIndex=j;break}
-          if(c.l<=a.tp1){exit=a.tp1;result="WIN";exitIndex=j;break}
+          if(candle.h>=a.stop){exit=a.stop;exitReason="STOP";exitIndex=j;break}
+          if(candle.l<=a.tp1){exit=a.tp1;exitReason="TARGET";exitIndex=j;break}
         }
       }
       if(exit===null)exit=h1[exitIndex].c;
       const gross=a.state==="BUY"?(exit-a.entry)/a.entry*100:(a.entry-exit)/a.entry*100;
       const netPct=gross-0.2;
-      trades.push({time:signalCandle.closeTime,side:a.state,entry:a.entry,exit,result,netPct});
+      trades.push({time:signalCandle.closeTime,side:a.state,entry:a.entry,exit,exitReason,result:netPct>0?"WIN":"LOSS",netPct});
       nextAllowedIndex=exitIndex+1;
     }
     renderBacktest(trades);
-    status.textContent=`Finished ${symbol.replace("USDT","/USDT")} test using ${h1.length} 1H candles. ${trades.length} non-overlapping trades; historical sample only.`;
+    status.textContent=`Finished ${days}-day ${symbol.replace("USDT","/USDT")} test using ${h1.length} 1H candles (including indicator warm-up). ${trades.length} non-overlapping trades; historical sample only.`;
   }catch(e){
-    status.textContent=e.message||"Backtest failed. Please try again.";
-    status.className="status error";
+    status.textContent=e.message||"Backtest failed. Please try again.";status.className="status error";
     $("backtestBody").innerHTML='<tr><td colspan="6">Backtest could not be completed.</td></tr>';
-  }finally{
-    button.disabled=false;button.textContent="Run backtest";
-  }
+    $("backtestSideBody").innerHTML='<tr><td colspan="4">No results available.</td></tr>';
+  }finally{button.disabled=false;button.textContent="Run backtest"}
 }
 
 let previousLivePrice=null;
