@@ -62,11 +62,11 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
 <div class="status" id="status" role="status">Ready. Tap “Scan market” to load public exchange candles.</div>
 <section class="grid" style="margin-top:12px">
 <div class="card hero">
-<div class="sectionhead"><div class="label">Current rule-based signal</div><span class="pill" id="timeframe">15m + 1H + 4H</span></div>
+<div class="sectionhead"><div class="label">SMC liquidity signal</div><span class="pill" id="timeframe">15m context + 5m entry</span></div>
 <div class="signal wait" id="signal">WAIT</div>
 <div class="price" id="price">—</div><div class="meta" id="pairname">Live market price · —</div>
 <div class="chips"><span class="chip" id="rsi">RSI 14: —</span><span class="chip" id="vol">Volume: —</span><span class="chip" id="trend">4H trend: —</span><span class="chip" id="trend15">15m trend: —</span></div>
-<div class="card" style="margin-top:12px;padding:12px;background:#0b1525;border:1px solid #35506f"><div class="label" style="margin-bottom:8px">MULTI-TIMEFRAME CONFIRMATION</div><div class="chips" style="margin-top:0"><span class="chip" id="tf15">15 MIN: Waiting</span><span class="chip" id="tf1h">1 HOUR: Waiting</span><span class="chip" id="tf4h">4 HOUR: Waiting</span></div></div>
+<div class="card" style="margin-top:12px;padding:12px;background:#0b1525;border:1px solid #35506f"><div class="label" style="margin-bottom:8px">SMC MARKET CONTEXT</div><div class="chips" style="margin-top:0"><span class="chip" id="tf15">15 MIN: Waiting</span><span class="chip" id="tf1h">5 MIN STRUCTURE: Waiting</span><span class="chip" id="tf4h">SETUP: Waiting</span></div></div>
 <div class="chartlayout">
   <div class="chartbox">
     <canvas id="chart" aria-label="Recent closing prices"></canvas>
@@ -82,16 +82,16 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
     <canvas id="volumeProfile" aria-label="Estimated volume profile"></canvas>
   </div>
 </div>
-<div class="meta">Recent closed 1H candles · visual line only</div>
+<div class="meta">Recent closed 5m candles · visual line only</div>
 </div>
 <div class="card side">
-<div class="label">Signal explanation</div>
+<div class="label">SMC setup explanation</div>
 <div class="rows" id="reasons"><div class="rowitem"><span>Scanner conditions</span><span class="val">Waiting</span></div></div>
 <div class="note" id="summary">Load data to calculate indicator conditions.</div>
-<div class="card" style="margin-top:12px;padding:12px;background:#0b1525;border:1px solid #35506f"><div class="label">SIGNAL STRENGTH · CONDITION MATCH</div><div style="margin-top:12px"><div class="sectionhead"><span class="label" style="color:#43d6a0">BUY strength</span><strong id="buyStrengthValue">—%</strong></div><div style="height:9px;background:#26354c;border-radius:8px;overflow:hidden;margin-top:7px"><div id="buyStrengthBar" style="height:100%;width:0%;background:#43d6a0;border-radius:8px;transition:width .25s"></div></div><div class="meta" id="buyStrengthLabel" style="margin-top:5px">0 of 6 conditions met</div></div><div style="margin-top:14px"><div class="sectionhead"><span class="label" style="color:#e06b75">SELL strength</span><strong id="sellStrengthValue">—%</strong></div><div style="height:9px;background:#26354c;border-radius:8px;overflow:hidden;margin-top:7px"><div id="sellStrengthBar" style="height:100%;width:0%;background:#e06b75;border-radius:8px;transition:width .25s"></div></div><div class="meta" id="sellStrengthLabel" style="margin-top:5px">0 of 4 conditions met</div></div><div class="meta" style="margin-top:10px">Condition match only — not a win probability</div></div>
+<div class="card" style="margin-top:12px;padding:12px;background:#0b1525;border:1px solid #35506f"><div class="label">SMC SETUP PROGRESS</div><div style="margin-top:12px"><div class="sectionhead"><span class="label" style="color:#43d6a0">BUY strength</span><strong id="buyStrengthValue">—%</strong></div><div style="height:9px;background:#26354c;border-radius:8px;overflow:hidden;margin-top:7px"><div id="buyStrengthBar" style="height:100%;width:0%;background:#43d6a0;border-radius:8px;transition:width .25s"></div></div><div class="meta" id="buyStrengthLabel" style="margin-top:5px">0 of 6 conditions met</div></div><div style="margin-top:14px"><div class="sectionhead"><span class="label" style="color:#e06b75">SELL strength</span><strong id="sellStrengthValue">—%</strong></div><div style="height:9px;background:#26354c;border-radius:8px;overflow:hidden;margin-top:7px"><div id="sellStrengthBar" style="height:100%;width:0%;background:#e06b75;border-radius:8px;transition:width .25s"></div></div><div class="meta" id="sellStrengthLabel" style="margin-top:5px">0 of 4 conditions met</div></div><div class="meta" style="margin-top:10px">Setup stages completed — not a win probability</div></div>
 </div>
 <div class="card half">
-<div class="sectionhead"><div class="label">Trade planning reference</div><span class="pill">Illustrative</span></div>
+<div class="sectionhead"><div class="label">SMC trade planning</div><span class="pill">Illustrative</span></div>
 <div class="rows">
   <div class="rowitem">
   <span>Smart Entry Zone</span>
@@ -107,7 +107,7 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
 <div class="rowitem"><span>Take profit 2</span><span class="val" id="target2">—</span></div>
 <div class="rowitem"><span>Risk / Reward TP1</span><span class="val" id="rr1">—</span></div>
 <div class="rowitem"><span>Risk / Reward TP2</span><span class="val" id="rr2">—</span></div>
-<div class="rowitem"><span>ATR (14), 1H</span><span class="val" id="atr">—</span></div>
+<div class="rowitem"><span>ATR (14), 5m</span><span class="val" id="atr">—</span></div>
 <div class="rowitem"><span>Support</span><span class="val" id="support">—</span></div>
 <div class="rowitem"><span>Resistance</span><span class="val" id="resistance">—</span></div>
 <div class="rowitem"><span>Volume Profile POC</span><span class="val" id="poc">—</span></div>
@@ -115,7 +115,7 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
 <div class="note">Experimental estimates based on completed 1H candles. Not orders or guaranteed fills. Validate the strategy before using real money.</div>
 </div>
 <div class="card half">
-<div class="sectionhead"><div class="label">Indicator snapshot</div><span class="pill">1H</span></div>
+<div class="sectionhead"><div class="label">Indicator snapshot</div><span class="pill">5m / 15m</span></div>
 <div class="rows" id="indicators">
 <div class="rowitem"><span>EMA 20</span><span class="val">—</span></div><div class="rowitem"><span>EMA 50</span><span class="val">—</span></div><div class="rowitem"><span>EMA 200</span><span class="val">—</span></div>
 </div>
@@ -180,7 +180,7 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
   </div>
 
 <div class="card wide" id="backtestCard">
-  <div class="sectionhead"><div><div class="label">Historical Backtesting</div><div class="meta">Test the current rules against past Binance candles · separate from live paper tracking</div></div><span class="pill">EXPERIMENTAL</span></div>
+  <div class="sectionhead"><div><div class="label">Legacy 1H Backtest (Previous Strategy)</div><div class="meta">This tests the previous indicator strategy, NOT the new SMC 5m strategy. Do not use these results to evaluate SMC</div></div><span class="pill">EXPERIMENTAL</span></div>
   <div class="controls"><select id="backtestPair" aria-label="Backtest asset"><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option><option value="SOLUSDT">SOL / USDT</option></select><select id="backtestPeriod" aria-label="Backtest period"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option></select><button id="runBacktest">Run backtest</button></div>
   <div class="status" id="backtestStatus">Choose an asset and run the historical test.</div>
   <div class="grid" style="margin-top:12px">
@@ -209,7 +209,7 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
     <div class="tablewrap"><table><thead><tr><th>Direction</th><th>Condition</th><th>Passed</th><th>Pass rate</th></tr></thead><tbody id="backtestDiagnosticBody"><tr><td colspan="4">Run a backtest to diagnose the entry filters.</td></tr></tbody></table></div>
   </div>
   <div class="tablewrap"><table><thead><tr><th>Entry time</th><th>Side</th><th>Entry</th><th>Exit</th><th>Exit reason</th><th>Net %</th></tr></thead><tbody id="backtestBody"><tr><td colspan="6">No backtest has been run.</td></tr></tbody></table></div>
-  <div class="note">Simulation rules: signal at a completed 1H close; exits are checked on later 1H candles for up to 48 hours. If stop and target are both touched in one candle, stop is counted first. Net return deducts an assumed 0.1% fee per side (0.2% round trip); slippage is not included. The sample is limited by available exchange candles. Historical results do not predict future performance.</div>
+  <div class="note">Legacy simulation only: signals at a completed 1H close; this is not an SMC backtest. Exits are checked on later 1H candles for up to 48 hours. If stop and target are both touched in one candle, stop is counted first. Net return deducts an assumed 0.1% fee per side (0.2% round trip); slippage is not included. The sample is limited by available exchange candles. Historical results do not predict future performance.</div>
 </div>
 
 <div class="card wide disclaimer"><strong>Testing warning</strong><br>Experimental educational software. Signals can be wrong, delayed, incomplete, or unavailable. No profitability claims. Crypto trading can cause substantial losses. This demo uses public exchange market data and does not connect to accounts, execute trades, or collect personal information.</div>
@@ -266,6 +266,8 @@ const fmt=n=>Number.isFinite(n)?n.toLocaleString("en-US",{maximumFractionDigits:
 
 function recordSignal(a,symbol){
   if(!["BUY","SELL","WAIT"].includes(a.state)) return;
+
+  if(a.state==="WAIT") return;
 
   let history=getHistory();
   let id=symbol+"_"+a.state+"_"+a.stamp;
@@ -339,141 +341,72 @@ async function candles(symbol,interval){let u=`https://api.binance.com/api/v3/kl
   return price;
   }
 function closedOnly(data){let now=Date.now();return data.filter(x=>x.closeTime<now)}
-function analyze(one,four,fifteen){
-  let c=closedOnly(one),d=closedOnly(four),m=closedOnly(fifteen);
-  if(c.length<205||d.length<55||m.length<55)throw Error("Waiting for sufficient finalized candle history.");
-
-  let close=c.map(x=>x.c),cl4=d.map(x=>x.c);
-  let e20=ema(close,20),e50=ema(close,50),e200=ema(close,200);
-  let e4_20=ema(cl4,20),e4_50=ema(cl4,50);
-  let last=close.length-1,px=close[last],rr=rsi(close);
-  let volume=c[last].v;
-  let volBase=c.slice(-21,-1).reduce((s,x)=>s+x.v,0)/20;
-  let volRatio=volume/volBase;
-
-  let trend=e4_20.at(-1)>e4_50.at(-1)&&cl4.at(-1)>e4_50.at(-1)?"Bullish":e4_20.at(-1)<e4_50.at(-1)&&cl4.at(-1)<e4_50.at(-1)?"Bearish":"Mixed";
-  let close15=m.map(x=>x.c),e15_20=ema(close15,20),e15_50=ema(close15,50),last15=close15.length-1;
-  let trend15=e15_20[last15]>e15_50[last15]&&close15[last15]>e15_20[last15]?"Bullish":e15_20[last15]<e15_50[last15]&&close15[last15]<e15_20[last15]?"Bearish":"Mixed";
-  let previousHigh=Math.max(...c.slice(-21,-1).map(x=>x.h));
-  let breakout=px>previousHigh;
-
-  let trs=c.map((x,i)=>i?Math.max(x.h-x.l,Math.abs(x.h-c[i-1].c),Math.abs(x.l-c[i-1].c)):x.h-x.l);
-  let av=trs.slice(-14).reduce((a,b)=>a+b,0)/14;
-  let atrPct=av/px*100;
-  let volatilityOK=atrPct>=0.08&&atrPct<=3.5;
-
-  let recentStructure=c.slice(-20);
-  let priorStructure=recentStructure.slice(0,10),latestStructure=recentStructure.slice(10);
-  let priorHigh=Math.max(...priorStructure.map(x=>x.h));
-  let priorLow=Math.min(...priorStructure.map(x=>x.l));
-  let recentHigh=Math.max(...latestStructure.map(x=>x.h));
-  let recentLow=Math.min(...latestStructure.map(x=>x.l));
-  let bullishStructure=recentHigh>priorHigh&&recentLow>priorLow;
-  let bearishStructure=recentHigh<priorHigh&&recentLow<priorLow;
-  let previousLow=Math.min(...c.slice(-21,-1).map(x=>x.l));
-  let breakdown=px<previousLow;
-
-  let buyChecks=[trend==="Bullish",px>e20[last]&&e20[last]>e50[last],rr>50&&rr<68,volRatio>=1.15,breakout,trend15==="Bullish",volatilityOK,bullishStructure];
-  let sellChecks=[trend==="Bearish",px<e20[last]&&e20[last]<e50[last],rr<47,trend15==="Bearish",breakdown,volatilityOK,bearishStructure];
-  let buy=buyChecks.every(Boolean),sell=sellChecks.every(Boolean);
-  let state=buy?"BUY":sell?"SELL":"WAIT";
-
-  let recent=c.slice(-100);
-  let low=Math.min(...recent.map(x=>x.l));
-  let high=Math.max(...recent.map(x=>x.h));
-  let bins=24,step=(high-low)/bins;
-  let profile=Array(bins).fill(0);
-
-  if(step>0){
-    recent.forEach(x=>{
-      let typical=(x.h+x.l+x.c)/3;
-      let index=Math.min(bins-1,Math.max(0,Math.floor((typical-low)/step)));
-      profile[index]+=x.v;
-    });
+function analyzeSMC(five,m15){
+ const c=closedOnly(five),m=closedOnly(m15);
+ if(c.length<80||m.length<55)throw Error("Waiting for enough finalized 5m and 15m candles.");
+ const closes=m.map(x=>x.c),e20=ema(closes,20),e50=ema(closes,50),mi=closes.length-1;
+ const bias=e20[mi]>e50[mi]&&closes[mi]>e20[mi]?"Bullish":e20[mi]<e50[mi]&&closes[mi]<e20[mi]?"Bearish":"Neutral";
+ const n=c.length,last=n-1,px=c[last].c;
+ const tr=c.map((x,i)=>i?Math.max(x.h-x.l,Math.abs(x.h-c[i-1].c),Math.abs(x.l-c[i-1].c)):x.h-x.l);
+ const av=tr.slice(-14).reduce((s,x)=>s+x,0)/14;
+ const bodies=c.slice(-20,-1).map(x=>Math.abs(x.c-x.o));
+ const avgBody=bodies.reduce((s,x)=>s+x,0)/(bodies.length||1);
+ const pivots=[];
+ for(let i=2;i<n-2;i++){
+  const left=c.slice(i-2,i),right=c.slice(i+1,i+3);
+  if(left.every(x=>c[i].h>x.h)&&right.every(x=>c[i].h>x.h))pivots.push({type:"H",price:c[i].h,index:i,confirmed:i+2});
+  if(left.every(x=>c[i].l<x.l)&&right.every(x=>c[i].l<x.l))pivots.push({type:"L",price:c[i].l,index:i,confirmed:i+2});
+ }
+ let setup=null;
+ for(let i=Math.max(25,n-55);i<n-5;i++){
+  const priorHigh=pivots.filter(p=>p.type==="H"&&p.confirmed<i).at(-1);
+  const priorLow=pivots.filter(p=>p.type==="L"&&p.confirmed<i).at(-1);
+  if(!priorHigh||!priorLow)continue;
+  let side=null,sweepExtreme=null,liquidityLevel=null;
+  if(c[i].h>priorHigh.price&&c[i].c<priorHigh.price){side="SELL";sweepExtreme=c[i].h;liquidityLevel=priorHigh.price}
+  if(c[i].l<priorLow.price&&c[i].c>priorLow.price){side="BUY";sweepExtreme=c[i].l;liquidityLevel=priorLow.price}
+  if(!side)continue;
+  let mssIndex=-1,mssLevel=null;
+  for(let j=i+1;j<Math.min(n-2,i+13);j++){
+   const structure=side==="BUY"?pivots.filter(p=>p.type==="H"&&p.confirmed<j&&p.index>i-12).at(-1):pivots.filter(p=>p.type==="L"&&p.confirmed<j&&p.index>i-12).at(-1);
+   if(!structure)continue;
+   if(side==="BUY"&&c[j].c>structure.price){mssIndex=j;mssLevel=structure.price;break}
+   if(side==="SELL"&&c[j].c<structure.price){mssIndex=j;mssLevel=structure.price;break}
   }
-
-  let pocIndex=profile.indexOf(Math.max(...profile));
-  let poc=step>0?low+(pocIndex+0.5)*step:low;
-  let avgProfileVol=profile.reduce((a,b)=>a+b,0)/bins;
-let hvnLevels=[];
-let lvnLevels=[];
-
-for(let i=0;i<bins;i++){
-  let level=low+(i+0.5)*step;
-
-  if(profile[i]>=avgProfileVol*1.5){
-    hvnLevels.push(level);
+  if(mssIndex<0){setup={side,stage:"Waiting for MSS",sweepExtreme,liquidityLevel};continue}
+  let fvg=null;
+  for(let k=mssIndex+1;k<n;k++){
+   const displacement=Math.abs(c[k].c-c[k].o)>=Math.max(avgBody*1.25,av*0.35);
+   if(!displacement)continue;
+   if(side==="BUY"&&c[k].c>c[k].o&&c[k-2].h<c[k].l){fvg={low:c[k-2].h,high:c[k].l,index:k};break}
+   if(side==="SELL"&&c[k].c<c[k].o&&c[k-2].l>c[k].h){fvg={low:c[k].h,high:c[k-2].l,index:k};break}
   }
-
-  if(profile[i]<=avgProfileVol*0.5){
-    lvnLevels.push(level);
+  if(!fvg){setup={side,stage:"Waiting for displacement / FVG",sweepExtreme,liquidityLevel,mssIndex,mssLevel};continue}
+  let retestIndex=-1;
+  for(let r=fvg.index+1;r<n;r++)if(c[r].l<=fvg.high&&c[r].h>=fvg.low){retestIndex=r;break}
+  setup={side,stage:retestIndex===n-1?"FVG retest active":"Waiting for FVG retest",sweepExtreme,liquidityLevel,mssIndex,mssLevel,fvg,retestIndex};
+ }
+ const stage=setup?setup.stage:"Waiting for liquidity sweep";
+ const side=setup?setup.side:null,ready=!!setup&&setup.stage==="FVG retest active";
+ const state=ready?side:"WAIT";
+ const entry=setup&&setup.fvg?(setup.fvg.low+setup.fvg.high)/2:null;
+ let stop=null,tp1=null,tp2=null,rr1=null,rr2=null;
+ if(ready&&Number.isFinite(entry)){
+  const buffer=av*0.12;
+  stop=side==="BUY"?setup.sweepExtreme-buffer:setup.sweepExtreme+buffer;
+  const risk=Math.abs(entry-stop);
+  if(risk>0){
+   const opposing=side==="BUY"?pivots.filter(p=>p.type==="H"&&p.price>entry).map(p=>p.price).sort((a,b)=>a-b)[0]:pivots.filter(p=>p.type==="L"&&p.price<entry).map(p=>p.price).sort((a,b)=>b-a)[0];
+   const minTarget=side==="BUY"?entry+1.5*risk:entry-1.5*risk;
+   tp1=Number.isFinite(opposing)&&(side==="BUY"?opposing>=minTarget:opposing<=minTarget)?opposing:minTarget;
+   tp2=side==="BUY"?entry+2.5*risk:entry-2.5*risk;rr1=1.5;rr2=2.5;
   }
+ }
+ const buyChecks=[side==="BUY",side==="BUY"&&setup.mssIndex!==undefined,side==="BUY"&&!!setup.fvg,side==="BUY"&&ready,bias==="Bullish"];
+ const sellChecks=[side==="SELL",side==="SELL"&&setup.mssIndex!==undefined,side==="SELL"&&!!setup.fvg,side==="SELL"&&ready,bias==="Bearish"];
+ const strength=ready?100:setup&&setup.fvg?80:setup&&setup.mssIndex!==undefined?60:setup?35:0;
+ return {c,px,rr:null,volRatio:null,trend:bias,trend15:bias,atrPct:av/px*100,volatilityOK:true,bullishStructure:false,bearishStructure:false,breakdown:false,e20:null,e50:null,e200:null,av,stop,entry,tp1,tp2,rr1,rr2,support:setup?setup.liquidityLevel:null,resistance:setup?setup.liquidityLevel:null,poc:null,state,breakout:false,buyChecks,sellChecks,buyStrength:Math.round(buyChecks.filter(Boolean).length/5*100),sellStrength:Math.round(sellChecks.filter(Boolean).length/5*100),strength,strengthSide:side||"—",stamp:c[last].closeTime,zoneLow:setup&&setup.fvg?setup.fvg.low:null,zoneHigh:setup&&setup.fvg?setup.fvg.high:null,volumeArea:setup&&setup.fvg?"FVG retracement zone":"No active FVG",setupStage:stage,setupSide:side,liquidityLevel:setup?setup.liquidityLevel:null,sweepExtreme:setup?setup.sweepExtreme:null,mssLevel:setup?setup.mssLevel:null,fvgLow:setup&&setup.fvg?setup.fvg.low:null,fvgHigh:setup&&setup.fvg?setup.fvg.high:null,bias,displacement:!!(setup&&setup.fvg)};
 }
-  let nearestHVN=hvnLevels
-  .sort((a,b)=>Math.abs(a-px)-Math.abs(b-px))[0]||poc;
-
-let nearestLVN=lvnLevels
-  .sort((a,b)=>Math.abs(a-px)-Math.abs(b-px))[0]||poc;
-
-  let supports=[],resistances=[];
-  for(let i=Math.max(2,c.length-100);i<c.length-2;i++){
-    if(c[i].l<c[i-1].l&&c[i].l<c[i-2].l&&c[i].l<c[i+1].l&&c[i].l<c[i+2].l)supports.push(c[i].l);
-    if(c[i].h>c[i-1].h&&c[i].h>c[i-2].h&&c[i].h>c[i+1].h&&c[i].h>c[i+2].h)resistances.push(c[i].h);
-  }
-
-  let support=supports.filter(x=>x<px).sort((a,b)=>b-a)[0]||px-2*av;
-  let resistance=resistances.filter(x=>x>px).sort((a,b)=>a-b)[0]||px+2*av;
-
-  let entry=px,stop=null,tp1=null,tp2=null,rr1=null,rr2=null;
-let zoneLow=null,zoneHigh=null;
-let volumeArea="No clear volume area";
-
-if(state==="BUY"){
-  let candidate=nearestHVN<px?nearestHVN:poc;
-  zoneLow=candidate-0.25*av;
-  zoneHigh=candidate+0.25*av;
-  volumeArea="Potential BUY area";
-}
-
-if(state==="SELL"){
-  let candidate=nearestHVN>px?nearestHVN:poc;
-  zoneLow=candidate-0.25*av;
-  zoneHigh=candidate+0.25*av;
-  volumeArea="Potential SELL area";
-}
-  if(state==="BUY"){
-    stop=Math.min(px-1.5*av,support-0.25*av);
-    let risk=entry-stop;
-    tp1=resistance>entry+0.5*risk?resistance:entry+2*risk;
-    tp2=Math.max(entry+3*risk,tp1+0.5*risk);
-    rr1=(tp1-entry)/risk;
-    rr2=(tp2-entry)/risk;
-  }
-
-  if(state==="SELL"){
-    stop=Math.max(px+1.5*av,resistance+0.25*av);
-    let risk=stop-entry;
-    tp1=support<entry-0.5*risk?support:entry-2*risk;
-    tp2=Math.min(entry-3*risk,tp1-0.5*risk);
-    rr1=(entry-tp1)/risk;
-    rr2=(entry-tp2)/risk;
-  }
-
-  return{
-    zoneLow,zoneHigh,volumeArea,nearestHVN,nearestLVN,
-    c,px,rr,volume,volRatio,trend,trend15,atrPct,volatilityOK,bullishStructure,bearishStructure,breakdown,
-    e20:e20[last],e50:e50[last],e200:e200[last],
-    av,stop,target:tp1,entry,tp1,tp2,rr1,rr2,
-    support,resistance,poc,state,breakout,
-    buyChecks,sellChecks,
-    buyStrength:Math.round(buyChecks.filter(Boolean).length/buyChecks.length*100),
-    sellStrength:Math.round(sellChecks.filter(Boolean).length/sellChecks.length*100),
-    strength:Math.round(Math.max(buyChecks.filter(Boolean).length/buyChecks.length,sellChecks.filter(Boolean).length/sellChecks.length)*100),
-    strengthSide:buyChecks.filter(Boolean).length/buyChecks.length>=sellChecks.filter(Boolean).length/sellChecks.length?"BUY":"SELL",
-    stamp:c[last].closeTime,stamp4:d.at(-1).closeTime
-  };
-}
-
 
 async function fetchBacktestCandlesRange(symbol,interval,days){
   const intervalMs={"15m":15*60*1000,"1h":60*60*1000,"4h":4*60*60*1000}[interval];
@@ -655,47 +588,29 @@ function showLivePrice(symbol,live){
 }
 
 function show(a,symbol,live){
-  $("buyStrengthValue").textContent=a.buyStrength+"%";
-  $("buyStrengthBar").style.width=a.buyStrength+"%";
-  $("buyStrengthLabel").textContent=a.buyChecks.filter(Boolean).length+" of "+a.buyChecks.length+" BUY conditions met";
-  $("sellStrengthValue").textContent=a.sellStrength+"%";
-  $("sellStrengthBar").style.width=a.sellStrength+"%";
-  $("sellStrengthLabel").textContent=a.sellChecks.filter(Boolean).length+" of "+a.sellChecks.length+" SELL conditions met";
-  $("signal").textContent=a.state;
-  $("signal").className="signal "+a.state.toLowerCase();
-  showLivePrice(symbol,live);
-  $("rsi").textContent="RSI 14: "+fmt(a.rr);
-  $("vol").textContent="Volume: "+fmt(a.volRatio)+"× avg";
-  $("trend").textContent="4H trend: "+a.trend;
-  $("trend15").textContent="15m trend: "+a.trend15;
-  $("tf15").textContent="15 MIN: "+a.trend15;
-  $("tf1h").textContent="1 HOUR: "+(a.px>a.e20&&a.e20>a.e50?"Bullish":a.px<a.e20&&a.e20<a.e50?"Bearish":"Mixed");
-  $("tf4h").textContent="4 HOUR: "+a.trend;
-
-  $("entry").textContent=a.state==="WAIT"?"—":"$"+fmt(a.entry);
-  $("entryZone").textContent=a.zoneLow===null?"—":"$"+fmt(a.zoneLow)+" - $"+fmt(a.zoneHigh);
-$("volumeArea").textContent=a.state==="WAIT"?"No active setup":a.volumeArea;
-  $("atr").textContent="$"+fmt(a.av);
-  $("stop").textContent=a.stop===null?"—":"$"+fmt(a.stop);
-  $("target").textContent=a.tp1===null?"—":"$"+fmt(a.tp1);
-  $("target2").textContent=a.tp2===null?"—":"$"+fmt(a.tp2);
-  $("rr1").textContent=a.rr1===null?"—":a.rr1.toFixed(2)+"R";
-  $("rr2").textContent=a.rr2===null?"—":a.rr2.toFixed(2)+"R";
-  $("support").textContent="$"+fmt(a.support);
-  $("resistance").textContent="$"+fmt(a.resistance);
-  $("poc").textContent="$"+fmt(a.poc);
-
-  $("indicators").innerHTML=[["EMA 20",a.e20],["EMA 50",a.e50],["EMA 200",a.e200]].map(([n,v])=>`<div class="rowitem"><span>${n}</span><span class="val">$${fmt(v)}</span></div>`).join("");
-
-  let conditions=a.state==="SELL"?[["4H trend bearish",a.trend==="Bearish"],["1H close < EMA20 < EMA50",a.px<a.e20&&a.e20<a.e50],["RSI below 47",a.rr<47],["15m trend bearish",a.trend15==="Bearish"],["Close breaks prior 20-bar low",a.breakdown],["Volatility in range (0.08%–3.5% ATR)",a.volatilityOK],["Lower highs and lower lows",a.bearishStructure]]:[["4H trend bullish",a.trend==="Bullish"],["1H close > EMA20 > EMA50",a.px>a.e20&&a.e20>a.e50],["RSI between 50 and 68",a.rr>50&&a.rr<68],["Volume ≥ 1.15× 20-bar avg",a.volRatio>=1.15],["Close breaks prior 20-bar high",a.breakout],["15m trend bullish",a.trend15==="Bullish"],["Volatility in range (0.08%–3.5% ATR)",a.volatilityOK],["Higher highs and higher lows",a.bullishStructure]];
-  $("reasons").innerHTML=conditions.map(([n,ok])=>`<div class="rowitem"><span>${n}</span><span class="val ${ok?"ok":"bad"}">${ok?"PASS":"NOT MET"}</span></div>`).join("");
-
-  $("summary").textContent=a.state==="BUY"?"BUY setup: trend, momentum, volume, volatility and bullish market structure conditions are all met. Experimental alert only.":a.state==="SELL"?"SELL setup: bearish trend, momentum, breakdown, volatility and bearish market structure conditions are all met. Experimental alert only.":"WAIT: not all conditions for either direction are met. Volatility and market structure filters are designed to reject unsuitable setups.";
-
-  draw(a.c.slice(-90).map(x=>x.c));
-  drawVolumeProfile(a.c,live);
-  $("updated").textContent="Fetched "+new Date().toLocaleTimeString();
-  $("candleTime").textContent="Last 1H candle closed "+new Date(a.stamp).toLocaleString();
+ $("buyStrengthValue").textContent=a.buyStrength+"%";$("buyStrengthBar").style.width=a.buyStrength+"%";
+ $("buyStrengthLabel").textContent=a.buyChecks.filter(Boolean).length+" of 5 BUY stages / context";
+ $("sellStrengthValue").textContent=a.sellStrength+"%";$("sellStrengthBar").style.width=a.sellStrength+"%";
+ $("sellStrengthLabel").textContent=a.sellChecks.filter(Boolean).length+" of 5 SELL stages / context";
+ $("signal").textContent=a.state;$("signal").className="signal "+a.state.toLowerCase();showLivePrice(symbol,live);
+ $("rsi").textContent="15m bias: "+a.bias;$("vol").textContent="5m ATR: "+a.atrPct.toFixed(2)+"%";
+ $("trend").textContent="SMC stage: "+a.setupStage;$("trend15").textContent="Entry TF: 5m";
+ $("tf15").textContent="15 MIN: "+a.bias;$("tf1h").textContent="5 MIN STRUCTURE: "+(a.setupSide||"Searching");$("tf4h").textContent="SETUP: "+a.setupStage;
+ $("entry").textContent=a.entry===null?"—":"$"+fmt(a.entry);
+ $("entryZone").textContent=a.zoneLow===null?"—":"$"+fmt(a.zoneLow)+" - $"+fmt(a.zoneHigh);
+ $("volumeArea").textContent=a.volumeArea;$("atr").textContent="$"+fmt(a.av);
+ $("stop").textContent=a.stop===null?"—":"$"+fmt(a.stop);$("target").textContent=a.tp1===null?"—":"$"+fmt(a.tp1);
+ $("target2").textContent=a.tp2===null?"—":"$"+fmt(a.tp2);$("rr1").textContent=a.rr1===null?"—":a.rr1.toFixed(2)+"R";
+ $("rr2").textContent=a.rr2===null?"—":a.rr2.toFixed(2)+"R";
+ $("support").textContent=a.liquidityLevel===null?"—":"$"+fmt(a.liquidityLevel);
+ $("resistance").textContent=a.mssLevel===null?"—":"$"+fmt(a.mssLevel);$("poc").textContent="Not used";
+ const indicatorRows=[["15m bias",a.bias],["Liquidity level",a.liquidityLevel],["Sweep extreme",a.sweepExtreme],["MSS level",a.mssLevel],["FVG low",a.fvgLow],["FVG high",a.fvgHigh]];
+ $("indicators").innerHTML=indicatorRows.map(function(pair){const v=pair[1];return '<div class="rowitem"><span>'+pair[0]+'</span><span class="val">'+(typeof v==="number"?"$"+fmt(v):(v===null||v===undefined?"—":v))+'</span></div>'}).join("");
+ const checks=[["Liquidity sweep detected",!!a.setupSide],["Market Structure Shift (MSS)",a.mssLevel!==null],["Displacement + Fair Value Gap",a.displacement],["Price retested the FVG",a.setupStage==="FVG retest active"],["15m directional context",a.bias!=="Neutral"]];
+ $("reasons").innerHTML=checks.map(function(pair){return '<div class="rowitem"><span>'+pair[0]+'</span><span class="val '+(pair[1]?"ok":"warn")+'">'+(pair[1]?"PASS":"WAIT")+'</span></div>'}).join("");
+ $("summary").textContent=a.state==="BUY"?"BUY: bullish liquidity sweep, bullish MSS, displacement/FVG and a 5m FVG retest are aligned. Check the entry zone and stop before any trade.":a.state==="SELL"?"SELL: bearish liquidity sweep, bearish MSS, displacement/FVG and a 5m FVG retest are aligned. Check the entry zone and stop before any trade.":a.setupStage+". The scanner is waiting for the next required SMC event; no entry signal is active.";
+ draw(a.c.slice(-90).map(x=>x.c));$("updated").textContent="Fetched "+new Date().toLocaleTimeString();
+ $("candleTime").textContent="Last 5m candle closed "+new Date(a.stamp).toLocaleString();
 }
 function draw(vals){let can=$("chart"),r=can.getBoundingClientRect(),dpr=devicePixelRatio||1;can.width=r.width*dpr;can.height=r.height*dpr;let ctx=can.getContext("2d");ctx.scale(dpr,dpr);let w=r.width,h=r.height,pad=10,min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;ctx.strokeStyle="#26354c";ctx.lineWidth=1;for(let i=0;i<4;i++){let y=pad+i*(h-2*pad)/3;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}ctx.beginPath();vals.forEach((v,i)=>{let x=i/(vals.length-1)*w,y=h-pad-(v-min)/range*(h-2*pad);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.strokeStyle="#43d6a0";ctx.lineWidth=2;ctx.stroke();ctx.lineTo(w,h-pad);ctx.lineTo(0,h-pad);ctx.closePath();ctx.fillStyle="rgba(67,214,160,.08)";ctx.fill()}
 function drawVolumeProfile(candles,live){
@@ -785,7 +700,7 @@ ctx.fillText("LIVE: "+live.toFixed(2),2,14);
     ctx.stroke();
   }
 }
-async function scan(symbol=$("pair").value,quiet=false){if(!quiet){$("refresh").disabled=true;$("status").textContent="Fetching public market candles…";$("status").className="status"}try{let [m15,h1,h4,live]=await Promise.all([candles(symbol,"15m"),candles(symbol,"1h"),candles(symbol,"4h"),livePrice(symbol)]);let a=analyze(h1,h4,m15);updateSignalResults(a,symbol);recordSignal(a,symbol);if(!quiet)show(a,symbol,live);return {...a,live}}catch(e){if(!quiet){$("status").textContent=e.message;$("status").className="status error";$("signal").textContent="DATA ERROR";$("signal").className="signal wait"}throw e}finally{if(!quiet)$("refresh").disabled=false}}
+async function scan(symbol=$("pair").value,quiet=false){if(!quiet){$("refresh").disabled=true;$("status").textContent="Fetching public market candles…";$("status").className="status"}try{let [m15,five,live]=await Promise.all([candles(symbol,"15m"),candles(symbol,"5m"),livePrice(symbol)]);let a=analyzeSMC(five,m15);updateSignalResults(a,symbol);recordSignal(a,symbol);if(!quiet)show(a,symbol,live);return {...a,live}}catch(e){if(!quiet){$("status").textContent=e.message;$("status").className="status error";$("signal").textContent="DATA ERROR";$("signal").className="signal wait"}throw e}finally{if(!quiet)$("refresh").disabled=false}}
 
 let refreshingLivePrice=false;
 async function refreshLivePrice(){
