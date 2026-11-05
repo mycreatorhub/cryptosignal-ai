@@ -323,13 +323,26 @@ function analyze(one,four,fifteen){
   let previousHigh=Math.max(...c.slice(-21,-1).map(x=>x.h));
   let breakout=px>previousHigh;
 
-  let buyChecks=[trend==="Bullish",px>e20[last]&&e20[last]>e50[last],rr>50&&rr<68,volRatio>=1.15,breakout,trend15==="Bullish"];
-  let sellChecks=[trend==="Bearish",px<e20[last]&&e20[last]<e50[last],rr<47,trend15==="Bearish"];
-  let buy=buyChecks.every(Boolean),sell=sellChecks.every(Boolean);
-  let state=buy?"BUY":sell?"SELL":"WAIT";
-
   let trs=c.map((x,i)=>i?Math.max(x.h-x.l,Math.abs(x.h-c[i-1].c),Math.abs(x.l-c[i-1].c)):x.h-x.l);
   let av=trs.slice(-14).reduce((a,b)=>a+b,0)/14;
+  let atrPct=av/px*100;
+  let volatilityOK=atrPct>=0.08&&atrPct<=3.5;
+
+  let recentStructure=c.slice(-20);
+  let priorStructure=recentStructure.slice(0,10),latestStructure=recentStructure.slice(10);
+  let priorHigh=Math.max(...priorStructure.map(x=>x.h));
+  let priorLow=Math.min(...priorStructure.map(x=>x.l));
+  let recentHigh=Math.max(...latestStructure.map(x=>x.h));
+  let recentLow=Math.min(...latestStructure.map(x=>x.l));
+  let bullishStructure=recentHigh>priorHigh&&recentLow>priorLow;
+  let bearishStructure=recentHigh<priorHigh&&recentLow<priorLow;
+  let previousLow=Math.min(...c.slice(-21,-1).map(x=>x.l));
+  let breakdown=px<previousLow;
+
+  let buyChecks=[trend==="Bullish",px>e20[last]&&e20[last]>e50[last],rr>50&&rr<68,volRatio>=1.15,breakout,trend15==="Bullish",volatilityOK,bullishStructure];
+  let sellChecks=[trend==="Bearish",px<e20[last]&&e20[last]<e50[last],rr<47,trend15==="Bearish",breakdown,volatilityOK,bearishStructure];
+  let buy=buyChecks.every(Boolean),sell=sellChecks.every(Boolean);
+  let state=buy?"BUY":sell?"SELL":"WAIT";
 
   let recent=c.slice(-100);
   let low=Math.min(...recent.map(x=>x.l));
@@ -414,7 +427,7 @@ if(state==="SELL"){
 
   return{
     zoneLow,zoneHigh,volumeArea,nearestHVN,nearestLVN,
-    c,px,rr,volume,volRatio,trend,trend15,
+    c,px,rr,volume,volRatio,trend,trend15,atrPct,volatilityOK,bullishStructure,bearishStructure,breakdown,
     e20:e20[last],e50:e50[last],e200:e200[last],
     av,stop,target:tp1,entry,tp1,tp2,rr1,rr2,
     support,resistance,poc,state,breakout,
@@ -478,10 +491,10 @@ $("volumeArea").textContent=a.state==="WAIT"?"No active setup":a.volumeArea;
 
   $("indicators").innerHTML=[["EMA 20",a.e20],["EMA 50",a.e50],["EMA 200",a.e200]].map(([n,v])=>`<div class="rowitem"><span>${n}</span><span class="val">$${fmt(v)}</span></div>`).join("");
 
-  let conditions=[["4H trend bullish",a.trend==="Bullish"],["1H close > EMA20 > EMA50",a.px>a.e20&&a.e20>a.e50],["RSI between 50 and 68",a.rr>50&&a.rr<68],["Volume ≥ 1.15× 20-bar avg",a.volRatio>=1.15],["Close breaks prior 20-bar high",a.breakout],["15m trend confirms signal",a.state==="BUY"?a.trend15==="Bullish":a.state==="SELL"?a.trend15==="Bearish":false]];
+  let conditions=a.state==="SELL"?[["4H trend bearish",a.trend==="Bearish"],["1H close < EMA20 < EMA50",a.px<a.e20&&a.e20<a.e50],["RSI below 47",a.rr<47],["15m trend bearish",a.trend15==="Bearish"],["Close breaks prior 20-bar low",a.breakdown],["Volatility in range (0.08%–3.5% ATR)",a.volatilityOK],["Lower highs and lower lows",a.bearishStructure]]:[["4H trend bullish",a.trend==="Bullish"],["1H close > EMA20 > EMA50",a.px>a.e20&&a.e20>a.e50],["RSI between 50 and 68",a.rr>50&&a.rr<68],["Volume ≥ 1.15× 20-bar avg",a.volRatio>=1.15],["Close breaks prior 20-bar high",a.breakout],["15m trend bullish",a.trend15==="Bullish"],["Volatility in range (0.08%–3.5% ATR)",a.volatilityOK],["Higher highs and higher lows",a.bullishStructure]];
   $("reasons").innerHTML=conditions.map(([n,ok])=>`<div class="rowitem"><span>${n}</span><span class="val ${ok?"ok":"bad"}">${ok?"PASS":"NOT MET"}</span></div>`).join("");
 
-  $("summary").textContent=a.state==="BUY"?"All example BUY conditions are currently met on finalized candles. This is not a recommendation or a validated strategy.":a.state==="SELL"?"Bearish conditions met under this prototype's rules. SELL is a bearish alert, not an instruction to short.":"No complete BUY or SELL setup under the current example rules. WAIT is a valid outcome.";
+  $("summary").textContent=a.state==="BUY"?"BUY setup: trend, momentum, volume, volatility and bullish market structure conditions are all met. Experimental alert only.":a.state==="SELL"?"SELL setup: bearish trend, momentum, breakdown, volatility and bearish market structure conditions are all met. Experimental alert only.":"WAIT: not all conditions for either direction are met. Volatility and market structure filters are designed to reject unsuitable setups.";
 
   draw(a.c.slice(-90).map(x=>x.c));
   drawVolumeProfile(a.c,live);
