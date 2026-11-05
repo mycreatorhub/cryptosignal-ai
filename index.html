@@ -88,7 +88,7 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
 <div class="label">Signal explanation</div>
 <div class="rows" id="reasons"><div class="rowitem"><span>Scanner conditions</span><span class="val">Waiting</span></div></div>
 <div class="note" id="summary">Load data to calculate indicator conditions.</div>
-<div class="card" style="margin-top:12px;padding:12px;background:#0b1525;border:1px solid #35506f"><div class="sectionhead"><div class="label">SIGNAL STRENGTH · CONDITION MATCH</div><strong id="strengthValue">—%</strong></div><div style="height:9px;background:#26354c;border-radius:8px;overflow:hidden;margin-top:9px"><div id="strengthBar" style="height:100%;width:0%;background:#43d6a0;border-radius:8px;transition:width .25s"></div></div><div class="meta" id="strengthLabel" style="margin-top:8px">Waiting for market scan</div></div>
+<div class="card" style="margin-top:12px;padding:12px;background:#0b1525;border:1px solid #35506f"><div class="label">SIGNAL STRENGTH · CONDITION MATCH</div><div style="margin-top:12px"><div class="sectionhead"><span class="label" style="color:#43d6a0">BUY strength</span><strong id="buyStrengthValue">—%</strong></div><div style="height:9px;background:#26354c;border-radius:8px;overflow:hidden;margin-top:7px"><div id="buyStrengthBar" style="height:100%;width:0%;background:#43d6a0;border-radius:8px;transition:width .25s"></div></div><div class="meta" id="buyStrengthLabel" style="margin-top:5px">0 of 6 conditions met</div></div><div style="margin-top:14px"><div class="sectionhead"><span class="label" style="color:#e06b75">SELL strength</span><strong id="sellStrengthValue">—%</strong></div><div style="height:9px;background:#26354c;border-radius:8px;overflow:hidden;margin-top:7px"><div id="sellStrengthBar" style="height:100%;width:0%;background:#e06b75;border-radius:8px;transition:width .25s"></div></div><div class="meta" id="sellStrengthLabel" style="margin-top:5px">0 of 4 conditions met</div></div><div class="meta" style="margin-top:10px">Condition match only — not a win probability</div></div>
 </div>
 <div class="card half">
 <div class="sectionhead"><div class="label">Trade planning reference</div><span class="pill">Illustrative</span></div>
@@ -419,6 +419,8 @@ if(state==="SELL"){
     av,stop,target:tp1,entry,tp1,tp2,rr1,rr2,
     support,resistance,poc,state,breakout,
     buyChecks,sellChecks,
+    buyStrength:Math.round(buyChecks.filter(Boolean).length/buyChecks.length*100),
+    sellStrength:Math.round(sellChecks.filter(Boolean).length/sellChecks.length*100),
     strength:Math.round(Math.max(buyChecks.filter(Boolean).length/buyChecks.length,sellChecks.filter(Boolean).length/sellChecks.length)*100),
     strengthSide:buyChecks.filter(Boolean).length/buyChecks.length>=sellChecks.filter(Boolean).length/sellChecks.length?"BUY":"SELL",
     stamp:c[last].closeTime,stamp4:d.at(-1).closeTime
@@ -444,10 +446,12 @@ function showLivePrice(symbol,live){
 }
 
 function show(a,symbol,live){
-  $("strengthValue").textContent=a.strength+"%";
-  $("strengthBar").style.width=a.strength+"%";
-  $("strengthLabel").textContent=(a.state==="WAIT"?a.strengthSide+" setup alignment · ":"")+ (a.strength>=90?"Very strong":a.strength>=75?"Strong":a.strength>=50?"Moderate":"Weak")+" condition match — not a win probability";
-  $("strengthBar").style.background=a.strength>=75?"#43d6a0":a.strength>=50?"#f5c451":"#e06b75";
+  $("buyStrengthValue").textContent=a.buyStrength+"%";
+  $("buyStrengthBar").style.width=a.buyStrength+"%";
+  $("buyStrengthLabel").textContent=a.buyChecks.filter(Boolean).length+" of "+a.buyChecks.length+" BUY conditions met";
+  $("sellStrengthValue").textContent=a.sellStrength+"%";
+  $("sellStrengthBar").style.width=a.sellStrength+"%";
+  $("sellStrengthLabel").textContent=a.sellChecks.filter(Boolean).length+" of "+a.sellChecks.length+" SELL conditions met";
   $("signal").textContent=a.state;
   $("signal").className="signal "+a.state.toLowerCase();
   showLivePrice(symbol,live);
