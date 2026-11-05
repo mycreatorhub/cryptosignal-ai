@@ -205,7 +205,7 @@ function renderPerformance(){
   let losses=history.filter(x=>x.result==="LOSS").length;
   let completed=wins+losses;
 
-  $("totalTrades").textContent=history.length;
+  $("totalTrades").textContent=history.filter(x=>x.signal==="BUY"||x.signal==="SELL").length;
   $("totalWins").textContent=wins;
   $("totalLosses").textContent=losses;
   $("winRate").textContent=
@@ -231,8 +231,7 @@ function renderPerformance(){
 const fmt=n=>Number.isFinite(n)?n.toLocaleString("en-US",{maximumFractionDigits:n>=100?2:5}):"—";
 
 function recordSignal(a,symbol){
-  if(a.state!=="BUY" && a.state!=="SELL") return;
-  if(!Number.isFinite(a.entry) || !Number.isFinite(a.stop) || !Number.isFinite(a.tp1)) return;
+  if(!["BUY","SELL","WAIT"].includes(a.state)) return;
 
   let history=getHistory();
   let id=symbol+"_"+a.state+"_"+a.stamp;
@@ -248,7 +247,7 @@ function recordSignal(a,symbol){
     target:a.tp1,
     target2:a.tp2,
     strength:a.strength,
-    result:"PENDING",
+    result:a.state==="WAIT"?"NO TRADE":"PENDING",
     lastChecked:a.stamp
   });
 
