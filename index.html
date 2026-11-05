@@ -429,13 +429,8 @@ if(state==="SELL"){
 let previousLivePrice=null;
 let previousSymbol=null;
 
-function show(a,symbol,live){
-  $("strengthValue").textContent=a.strength+"%";
-  $("strengthBar").style.width=a.strength+"%";
-  $("strengthLabel").textContent=(a.state==="WAIT"?a.strengthSide+" setup alignment · ":"")+ (a.strength>=90?"Very strong":a.strength>=75?"Strong":a.strength>=50?"Moderate":"Weak")+" condition match — not a win probability";
-  $("strengthBar").style.background=a.strength>=75?"#43d6a0":a.strength>=50?"#f5c451":"#e06b75";
-  $("signal").textContent=a.state;
-  $("signal").className="signal "+a.state.toLowerCase();
+function showLivePrice(symbol,live){
+  if(!Number.isFinite(live))return;
   $("price").textContent="$"+fmt(live);
 
   let movement="";
@@ -446,8 +441,17 @@ function show(a,symbol,live){
   }
   previousLivePrice=live;
   previousSymbol=symbol;
-
   $("pairname").innerHTML=symbol.replace("USDT"," / USDT")+" · Live market price"+movement;
+}
+
+function show(a,symbol,live){
+  $("strengthValue").textContent=a.strength+"%";
+  $("strengthBar").style.width=a.strength+"%";
+  $("strengthLabel").textContent=(a.state==="WAIT"?a.strengthSide+" setup alignment · ":"")+ (a.strength>=90?"Very strong":a.strength>=75?"Strong":a.strength>=50?"Moderate":"Weak")+" condition match — not a win probability";
+  $("strengthBar").style.background=a.strength>=75?"#43d6a0":a.strength>=50?"#f5c451":"#e06b75";
+  $("signal").textContent=a.state;
+  $("signal").className="signal "+a.state.toLowerCase();
+  showLivePrice(symbol,live);
   $("rsi").textContent="RSI 14: "+fmt(a.rr);
   $("vol").textContent="Volume: "+fmt(a.volRatio)+"× avg";
   $("trend").textContent="4H trend: "+a.trend;
@@ -570,6 +574,24 @@ ctx.fillText("LIVE: "+live.toFixed(2),2,14);
   }
 }
 async function scan(symbol=$("pair").value,quiet=false){if(!quiet){$("refresh").disabled=true;$("status").textContent="Fetching public market candles…";$("status").className="status"}try{let [m15,h1,h4,live]=await Promise.all([candles(symbol,"15m"),candles(symbol,"1h"),candles(symbol,"4h"),livePrice(symbol)]);let a=analyze(h1,h4,m15);updateSignalResults(a,symbol);recordSignal(a,symbol);if(!quiet)show(a,symbol,live);return {...a,live}}catch(e){if(!quiet){$("status").textContent=e.message;$("status").className="status error";$("signal").textContent="DATA ERROR";$("signal").className="signal wait"}throw e}finally{if(!quiet)$("refresh").disabled=false}}
+
+let refreshingLivePrice=false;
+async function refreshLivePrice(){
+  if(refreshingLivePrice)return;
+  refreshingLivePrice=true;
+  const symbol=$("pair").value;
+  try{
+    const live=await livePrice(symbol);
+    if($("pair").value===symbol)showLivePrice(symbol,live);
+  }catch(e){
+    // Keep the last displayed price if a brief ticker request fails.
+  }finally{
+    refreshingLivePrice=false;
+  }
+}
+
+refreshLivePrice();
+setInterval(refreshLivePrice,5000);
 $("refresh").addEventListener("click",async()=>{try{await scan()}catch{}});
   let monitoringPendingSignals=false;
 
