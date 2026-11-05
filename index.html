@@ -53,7 +53,7 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
 <body><main>
 <header class="top"><div><div class="brand">◈ CryptoSignal <em>AI</em></div><div class="tag">Market scanner · MVP preview</div></div><span class="pill">SIGNAL-ONLY · NO TRADING</span></header>
 <h1>Read the market.<br>Trade with a plan.</h1>
-<p>A rules-based technical scanner for personal testing. Signals are experimental, not financial advice.</p>
+<p>A Smart Money Concepts (SMC) liquidity scanner for 5m scalping with 15m market context. Signals are experimental, not financial advice.</p>
 <div class="controls">
 <select id="pair" aria-label="Trading pair"><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option><option value="SOLUSDT">SOL / USDT</option></select>
 <button id="refresh">↻ Scan market</button>
@@ -745,7 +745,7 @@ function show(a,symbol,live){
  const checks=[["Liquidity sweep detected",!!a.setupSide],["Market Structure Shift (MSS)",a.mssLevel!==null],["Displacement + Fair Value Gap",a.displacement],["Price retested the FVG",a.setupStage==="FVG retest active"],["15m directional context",a.bias!=="Neutral"]];
  $("reasons").innerHTML=checks.map(function(pair){return '<div class="rowitem"><span>'+pair[0]+'</span><span class="val '+(pair[1]?"ok":"warn")+'">'+(pair[1]?"PASS":"WAIT")+'</span></div>'}).join("");
  $("summary").textContent=a.state==="BUY"?"BUY: bullish liquidity sweep, bullish MSS, displacement/FVG and a 5m FVG retest are aligned. Check the entry zone and stop before any trade.":a.state==="SELL"?"SELL: bearish liquidity sweep, bearish MSS, displacement/FVG and a 5m FVG retest are aligned. Check the entry zone and stop before any trade.":a.setupStage+". The scanner is waiting for the next required SMC event; no entry signal is active.";
- draw(a.c.slice(-90).map(x=>x.c));$("updated").textContent="Fetched "+new Date().toLocaleTimeString();
+ draw(a.c.slice(-90).map(x=>x.c));drawVolumeProfile(a.c,live);$("updated").textContent="Fetched "+new Date().toLocaleTimeString();
  $("candleTime").textContent="Last 5m candle closed "+new Date(a.stamp).toLocaleString();
 }
 function draw(vals){let can=$("chart"),r=can.getBoundingClientRect(),dpr=devicePixelRatio||1;can.width=r.width*dpr;can.height=r.height*dpr;let ctx=can.getContext("2d");ctx.scale(dpr,dpr);let w=r.width,h=r.height,pad=10,min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;ctx.strokeStyle="#26354c";ctx.lineWidth=1;for(let i=0;i<4;i++){let y=pad+i*(h-2*pad)/3;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}ctx.beginPath();vals.forEach((v,i)=>{let x=i/(vals.length-1)*w,y=h-pad-(v-min)/range*(h-2*pad);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.strokeStyle="#43d6a0";ctx.lineWidth=2;ctx.stroke();ctx.lineTo(w,h-pad);ctx.lineTo(0,h-pad);ctx.closePath();ctx.fillStyle="rgba(67,214,160,.08)";ctx.fill()}
