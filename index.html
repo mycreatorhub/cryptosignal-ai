@@ -571,11 +571,31 @@ ctx.fillText("LIVE: "+live.toFixed(2),2,14);
 }
 async function scan(symbol=$("pair").value,quiet=false){if(!quiet){$("refresh").disabled=true;$("status").textContent="Fetching public market candles…";$("status").className="status"}try{let [m15,h1,h4,live]=await Promise.all([candles(symbol,"15m"),candles(symbol,"1h"),candles(symbol,"4h"),livePrice(symbol)]);let a=analyze(h1,h4,m15);updateSignalResults(a,symbol);recordSignal(a,symbol);if(!quiet)show(a,symbol,live);return {...a,live}}catch(e){if(!quiet){$("status").textContent=e.message;$("status").className="status error";$("signal").textContent="DATA ERROR";$("signal").className="signal wait"}throw e}finally{if(!quiet)$("refresh").disabled=false}}
 $("refresh").addEventListener("click",async()=>{try{await scan()}catch{}});
-  setInterval(async()=>{
+  let monitoringPendingSignals=false;
+
+async function monitorPendingSignals(){
+  if(monitoringPendingSignals)return;
+  monitoringPendingSignals=true;
+
   try{
-    await scan();
-  }catch(e){}
-},30000);
+    let selected=$("pair").value;
+    let pendingSymbols=getHistory()
+      .filter(trade=>trade.result==="PENDING")
+      .map(trade=>trade.symbol);
+
+    let symbols=[...new Set([selected,...pendingSymbols])];
+
+    for(const symbol of symbols){
+      try{
+        await scan(symbol,symbol!==selected);
+      }catch(e){}
+    }
+  }finally{
+    monitoringPendingSignals=false;
+  }
+}
+
+setInterval(monitorPendingSignals,30000);
 $("pair").addEventListener("change",async()=>{try{await scan()}catch{}});
 $("watchscan").addEventListener("click",async()=>{let b=$("watchscan");b.disabled=true;b.textContent="Scanning…";$("watchbody").innerHTML="";for(let sym of ["BTCUSDT","ETHUSDT","SOLUSDT"]){try{let a=await scan(sym,true);let tr=document.createElement("tr");tr.innerHTML=`<td>${sym.replace("USDT","")}</td><td>$${fmt(a.live)}</td><td class="${a.state==="BUY"?"ok":a.state==="SELL"?"bad":"warn"}">${a.state}</td><td>${fmt(a.rr)}</td><td>${a.trend}</td>`;$("watchbody").appendChild(tr)}catch(e){let tr=document.createElement("tr");tr.innerHTML=`<td>${sym.replace("USDT","")}</td><td colspan="4" class="warn">Data unavailable</td>`;$("watchbody").appendChild(tr)}}b.disabled=false;b.textContent="Scan watchlist";});
 </script></body></html>
