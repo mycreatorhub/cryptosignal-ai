@@ -179,6 +179,26 @@ select,button{font:inherit;color:var(--txt);background:var(--panel);border:1px s
   </div>
   </div>
 
+
+<div class="card wide" id="smcBacktestCard">
+  <div class="sectionhead"><div><div class="label">SMC 5m Historical Backtest</div><div class="meta">Tests the live 5m SMC rules with 15m directional context. Separate from the legacy 1H test.</div></div><span class="pill">EXPERIMENTAL</span></div>
+  <div class="controls"><select id="smcBacktestPair" aria-label="SMC backtest asset"><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option><option value="SOLUSDT">SOL / USDT</option></select><select id="smcBacktestPeriod" aria-label="SMC backtest period"><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30" selected>Last 30 days</option></select><button id="runSMCBacktest">Run SMC backtest</button></div>
+  <div class="status" id="smcBacktestStatus">Choose an asset and run the 5m SMC historical test.</div>
+  <div class="grid" style="margin-top:12px">
+    <div class="card half"><div class="label">Completed trades</div><div class="price" id="smcBtTrades">—</div></div>
+    <div class="card half"><div class="label">Win rate</div><div class="price" id="smcBtWinRate">—</div></div>
+    <div class="card half"><div class="label">Net return · compounded</div><div class="price" id="smcBtReturn">—</div></div>
+    <div class="card half"><div class="label">Max drawdown</div><div class="price" id="smcBtDrawdown">—</div></div>
+    <div class="card half"><div class="label">Profit factor</div><div class="price" id="smcBtProfitFactor">—</div></div>
+    <div class="card half"><div class="label">Average win / loss</div><div class="price" id="smcBtAvg">—</div></div>
+  </div>
+  <div class="card" style="margin-top:12px;background:#0b1525"><div class="label">Equity curve · compounded, 1× notional per trade</div><div style="height:190px;margin-top:8px"><canvas id="smcBacktestEquity" aria-label="SMC backtest equity curve"></canvas></div></div>
+  <div class="tablewrap"><table><thead><tr><th>Side</th><th>Trades</th><th>Wins</th><th>Win rate</th><th>Net return</th></tr></thead><tbody id="smcBacktestSideBody"><tr><td colspan="5">Run the SMC backtest to see directional performance.</td></tr></tbody></table></div>
+  <div class="card" style="margin-top:12px;background:#0b1525"><div class="label">SMC condition diagnostics</div><div class="chips" style="margin-top:10px"><span class="chip" id="smcDiagBars">Evaluated 5m bars: —</span><span class="chip" id="smcDiagBuy">BUY setups: —</span><span class="chip" id="smcDiagSell">SELL setups: —</span><span class="chip" id="smcDiagWait">WAIT bars: —</span></div><div class="tablewrap"><table><thead><tr><th>Direction</th><th>Condition</th><th>Passed</th><th>Pass rate</th></tr></thead><tbody id="smcBacktestDiagnosticBody"><tr><td colspan="4">Run a test to inspect the SMC filters.</td></tr></tbody></table></div></div>
+  <div class="tablewrap"><table><thead><tr><th>Entry time</th><th>Side</th><th>Entry</th><th>Exit</th><th>Exit reason</th><th>Net %</th></tr></thead><tbody id="smcBacktestBody"><tr><td colspan="6">No SMC backtest has been run.</td></tr></tbody></table></div>
+  <div class="note">Method: finalized 5m candles, 15m EMA20/EMA50 directional context, liquidity sweep → MSS → displacement/FVG → FVG retest. Entry is simulated at the FVG midpoint; stop uses the sweep extreme; TP1 follows the live rule. Maximum hold is 12 future 5m candles (1 hour). If stop and target are both touched in one candle, stop is counted first. Estimated round-trip fees + slippage: 0.25%. No leverage or position sizing is modeled. Incomplete trades at the end of the sample are excluded. Historical results do not predict future performance.</div>
+</div>
+
 <div class="card wide" id="backtestCard">
   <div class="sectionhead"><div><div class="label">Legacy 1H Backtest (Previous Strategy)</div><div class="meta">This tests the previous indicator strategy, NOT the new SMC 5m strategy. Do not use these results to evaluate SMC</div></div><span class="pill">EXPERIMENTAL</span></div>
   <div class="controls"><select id="backtestPair" aria-label="Backtest asset"><option value="BTCUSDT">BTC / USDT</option><option value="ETHUSDT">ETH / USDT</option><option value="SOLUSDT">SOL / USDT</option></select><select id="backtestPeriod" aria-label="Backtest period"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option></select><button id="runBacktest">Run backtest</button></div>
@@ -388,7 +408,8 @@ function analyzeSMC(five,m15){
  }
  const stage=setup?setup.stage:"Waiting for liquidity sweep";
  const side=setup?setup.side:null,ready=!!setup&&setup.stage==="FVG retest active";
- const state=ready?side:"WAIT";
+ const contextAligned=(side==="BUY"&&bias==="Bullish")||(side==="SELL"&&bias==="Bearish");
+ const state=ready&&contextAligned?side:"WAIT";
  const entry=setup&&setup.fvg?(setup.fvg.low+setup.fvg.high)/2:null;
  let stop=null,tp1=null,tp2=null,rr1=null,rr2=null;
  if(ready&&Number.isFinite(entry)){
@@ -545,7 +566,7 @@ if(state==="SELL"){
 
 
 async function fetchBacktestCandlesRange(symbol,interval,days){
-  const intervalMs={"15m":15*60*1000,"1h":60*60*1000,"4h":4*60*60*1000}[interval];
+  const intervalMs={"5m":5*60*1000,"15m":15*60*1000,"1h":60*60*1000,"4h":4*60*60*1000}[interval];
   if(!intervalMs)throw Error("Unsupported backtest timeframe.");
   const now=Date.now();
   // Ten days of warm-up lets the strategy calculate its longest indicators.
@@ -566,6 +587,83 @@ async function fetchBacktestCandlesRange(symbol,interval,days){
   const unique=new Map();
   all.forEach(x=>unique.set(x[0],{t:x[0],o:+x[1],h:+x[2],l:+x[3],c:+x[4],v:+x[5],closeTime:x[6]}));
   return [...unique.values()].filter(x=>x.closeTime<now).sort((a,b)=>a.t-b.t);
+}
+
+
+async function runSMCBacktest(){
+  const button=$("runSMCBacktest"),status=$("smcBacktestStatus"),symbol=$("smcBacktestPair").value,days=Number($("smcBacktestPeriod").value);
+  button.disabled=true;button.textContent="Testing…";status.className="status";status.textContent="Downloading finalized 5m and 15m candles from Binance…";
+  ["smcBtTrades","smcBtWinRate","smcBtReturn","smcBtDrawdown","smcBtProfitFactor","smcBtAvg"].forEach(id=>$(id).textContent="—");
+  $("smcBacktestBody").innerHTML='<tr><td colspan="6">Calculating SMC entries and exits…</td></tr>';
+  $("smcBacktestSideBody").innerHTML='<tr><td colspan="5">Calculating BUY and SELL performance…</td></tr>';
+  try{
+    const data=await Promise.all([fetchBacktestCandlesRange(symbol,"5m",days),fetchBacktestCandlesRange(symbol,"15m",days)]);
+    const five=data[0],m15=data[1],cutoff=Date.now()-days*24*60*60*1000;
+    if(five.length<100||m15.length<55)throw Error("Not enough finalized 5m / 15m candles for this period.");
+    const trades=[],diag={bars:0,buy:0,sell:0,wait:0,buyChecks:Array(5).fill(0),sellChecks:Array(5).fill(0)};
+    const buyLabels=["Bullish liquidity sweep","Bullish MSS confirmed","Bullish displacement + FVG","5m FVG retest active","15m bullish context"];
+    const sellLabels=["Bearish liquidity sweep","Bearish MSS confirmed","Bearish displacement + FVG","5m FVG retest active","15m bearish context"];
+    let m15End=0,nextAllowedIndex=80;const maxHold=12,costPct=0.25;
+    for(let i=80;i<five.length-maxHold;i++){
+      const candle=five[i];
+      while(m15End<m15.length&&m15[m15End].closeTime<=candle.closeTime)m15End++;
+      if(candle.closeTime<cutoff)continue;
+      const fWindow=five.slice(Math.max(0,i-159),i+1),mWindow=m15.slice(Math.max(0,m15End-100),m15End);
+      if(mWindow.length<55)continue;
+      let a;try{a=analyzeSMC(fWindow,mWindow)}catch(e){continue}
+      diag.bars++;a.buyChecks.forEach((ok,j)=>{if(ok)diag.buyChecks[j]++});a.sellChecks.forEach((ok,j)=>{if(ok)diag.sellChecks[j]++});
+      if(a.state==="BUY")diag.buy++;else if(a.state==="SELL")diag.sell++;else diag.wait++;
+      if(i<nextAllowedIndex||(a.state!=="BUY"&&a.state!=="SELL"))continue;
+      if(!Number.isFinite(a.entry)||!Number.isFinite(a.stop)||!Number.isFinite(a.tp1))continue;
+      const validRisk=a.state==="BUY"?a.stop<a.entry&&a.tp1>a.entry:a.stop>a.entry&&a.tp1<a.entry;
+      if(!validRisk)continue;
+      const exitLimit=Math.min(five.length-1,i+maxHold);let exit=null,reason="TIME EXIT",exitIndex=exitLimit;
+      for(let j=i+1;j<=exitLimit;j++){
+        const x=five[j];
+        if(a.state==="BUY"){if(x.l<=a.stop){exit=a.stop;reason="STOP";exitIndex=j;break}if(x.h>=a.tp1){exit=a.tp1;reason="TARGET";exitIndex=j;break}}
+        else{if(x.h>=a.stop){exit=a.stop;reason="STOP";exitIndex=j;break}if(x.l<=a.tp1){exit=a.tp1;reason="TARGET";exitIndex=j;break}}
+      }
+      if(exit===null)exit=five[exitIndex].c;
+      const gross=a.state==="BUY"?(exit-a.entry)/a.entry*100:(a.entry-exit)/a.entry*100,netPct=gross-costPct;
+      trades.push({time:candle.closeTime,side:a.state,entry:a.entry,exit,exitReason:reason,netPct,result:netPct>0?"WIN":"LOSS"});
+      nextAllowedIndex=exitIndex+1;
+    }
+    renderSMCBacktest(trades,diag,buyLabels,sellLabels);
+    status.textContent="Finished "+days+"-day "+symbol.replace("USDT","/USDT")+" SMC test using "+five.length+" finalized 5m candles and "+m15.length+" finalized 15m candles (including warm-up). "+trades.length+" non-overlapping trades.";
+  }catch(e){
+    status.textContent=e.message||"SMC backtest failed. Please try again.";status.className="status error";
+    $("smcBacktestBody").innerHTML='<tr><td colspan="6">SMC backtest could not be completed.</td></tr>';
+    $("smcBacktestSideBody").innerHTML='<tr><td colspan="5">No results available.</td></tr>';
+  }finally{button.disabled=false;button.textContent="Run SMC backtest"}
+}
+function renderSMCBacktest(trades,diag,buyLabels,sellLabels){
+  const wins=trades.filter(t=>t.netPct>0),losses=trades.filter(t=>t.netPct<=0);
+  let equity=1,peak=1,maxDD=0;trades.forEach(t=>{equity*=1+t.netPct/100;peak=Math.max(peak,equity);maxDD=Math.max(maxDD,(peak-equity)/peak*100)});
+  const net=(equity-1)*100,grossWins=wins.reduce((s,t)=>s+t.netPct,0),grossLosses=Math.abs(losses.reduce((s,t)=>s+t.netPct,0));
+  const pf=grossLosses?grossWins/grossLosses:(grossWins>0?Infinity:0),avgWin=wins.length?grossWins/wins.length:0,avgLoss=losses.length?losses.reduce((s,t)=>s+t.netPct,0)/losses.length:0;
+  $("smcBtTrades").textContent=trades.length;$("smcBtWinRate").textContent=(trades.length?wins.length/trades.length*100:0).toFixed(1)+"%";
+  $("smcBtReturn").textContent=(net>=0?"+":"")+net.toFixed(2)+"%";$("smcBtReturn").className="price "+(net>=0?"ok":"bad");
+  $("smcBtDrawdown").textContent=maxDD.toFixed(2)+"%";$("smcBtProfitFactor").textContent=Number.isFinite(pf)?pf.toFixed(2):(pf===Infinity?"∞":"0.00");
+  $("smcBtAvg").textContent=(avgWin>=0?"+":"")+avgWin.toFixed(2)+"% / "+avgLoss.toFixed(2)+"%";
+  $("smcBacktestSideBody").innerHTML=["BUY","SELL"].map(side=>{
+    const group=trades.filter(t=>t.side===side),w=group.filter(t=>t.netPct>0),total=group.reduce((v,t)=>v+t.netPct,0);
+    return '<tr><td class="'+(side==="BUY"?"ok":"bad")+'">'+side+'</td><td>'+group.length+'</td><td>'+w.length+'</td><td>'+(group.length?(w.length/group.length*100).toFixed(1):"—")+'%</td><td>'+(total>=0?"+":"")+total.toFixed(2)+'%</td></tr>';
+  }).join("");
+  $("smcBacktestBody").innerHTML=trades.length?trades.slice().reverse().map(t=>'<tr><td>'+new Date(t.time).toLocaleString()+'</td><td class="'+(t.side==="BUY"?"ok":"bad")+'">'+t.side+'</td><td>'+fmt(t.entry)+'</td><td>'+fmt(t.exit)+'</td><td>'+t.exitReason+'</td><td class="'+(t.netPct>=0?"ok":"bad")+'">'+(t.netPct>=0?"+":"")+t.netPct.toFixed(2)+'%</td></tr>').join(""):'<tr><td colspan="6">No qualifying SMC entries in this sample.</td></tr>';
+  $("smcDiagBars").textContent="Evaluated 5m bars: "+diag.bars;$("smcDiagBuy").textContent="BUY setups: "+diag.buy;$("smcDiagSell").textContent="SELL setups: "+diag.sell;$("smcDiagWait").textContent="WAIT bars: "+diag.wait;
+  const rows=buyLabels.map((label,i)=>({side:"BUY",label,passed:diag.buyChecks[i]})).concat(sellLabels.map((label,i)=>({side:"SELL",label,passed:diag.sellChecks[i]})));
+  $("smcBacktestDiagnosticBody").innerHTML=rows.map(r=>'<tr><td class="'+(r.side==="BUY"?"ok":"bad")+'">'+r.side+'</td><td>'+r.label+'</td><td>'+r.passed+' / '+diag.bars+'</td><td>'+(diag.bars?(r.passed/diag.bars*100).toFixed(1):"0.0")+'%</td></tr>').join("");
+  drawSMCBacktestEquity(trades);
+}
+function drawSMCBacktestEquity(trades){
+  const can=$("smcBacktestEquity"),r=can.getBoundingClientRect(),dpr=window.devicePixelRatio||1;if(!r.width||!r.height)return;
+  can.width=r.width*dpr;can.height=r.height*dpr;const ctx=can.getContext("2d");ctx.setTransform(dpr,0,0,dpr,0,0);
+  const w=r.width,h=r.height,pad=12;ctx.clearRect(0,0,w,h);ctx.strokeStyle="#26354c";ctx.lineWidth=1;
+  for(let i=0;i<4;i++){const y=pad+i*(h-2*pad)/3;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+  let values=[100],eq=100;trades.forEach(t=>{eq*=1+t.netPct/100;values.push(eq)});
+  const min=Math.min(...values,100),max=Math.max(...values,100),range=max-min||1;ctx.beginPath();
+  values.forEach((v,i)=>{const x=i/Math.max(1,values.length-1)*w,y=h-pad-(v-min)/range*(h-2*pad);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y)});
+  ctx.strokeStyle=eq>=100?"#43d6a0":"#ff6d7d";ctx.lineWidth=2;ctx.stroke();
 }
 
 function drawBacktestEquity(trades){
@@ -882,6 +980,7 @@ async function monitorPendingSignals(){
 
 setInterval(monitorPendingSignals,30000);
 $("runBacktest").addEventListener("click",runHistoricalBacktest);
+$("runSMCBacktest").addEventListener("click",runSMCBacktest);
 $("pair").addEventListener("change",async()=>{try{await scan()}catch{}});
 $("watchscan").addEventListener("click",async()=>{let b=$("watchscan");b.disabled=true;b.textContent="Scanning…";$("watchbody").innerHTML="";for(let sym of ["BTCUSDT","ETHUSDT","SOLUSDT"]){try{let a=await scan(sym,true);let tr=document.createElement("tr");tr.innerHTML=`<td>${sym.replace("USDT","")}</td><td>$${fmt(a.live)}</td><td class="${a.state==="BUY"?"ok":a.state==="SELL"?"bad":"warn"}">${a.state}</td><td>${fmt(a.rr)}</td><td>${a.trend}</td>`;$("watchbody").appendChild(tr)}catch(e){let tr=document.createElement("tr");tr.innerHTML=`<td>${sym.replace("USDT","")}</td><td colspan="4" class="warn">Data unavailable</td>`;$("watchbody").appendChild(tr)}}b.disabled=false;b.textContent="Scan watchlist";});
 </script></body></html>
