@@ -404,13 +404,13 @@ async function scanForAlerts() {
       try {
         const [five, fifteen] = await Promise.all([getCandles(pair, "5m"), getCandles(pair, "15m")]);
         const a = analyzeSMC(five, fifteen);
-        await await updateSignalOutcomes(pair, five);
+        await updateSignalOutcomes(pair, five);
         if (a.state !== "BUY" && a.state !== "SELL") {
           lastAlertByPair.delete(pair);
           continue;
         }
         const key = [a.state, a.entry, a.stop, a.tp1, a.tp2, a.fvgLow, a.fvgHigh].join("|");
-        await await recordSignal(pair, a);
+        await recordSignal(pair, a);
         if (lastAlertByPair.get(pair) === key) continue;
         const live = await coinbasePrice(pair).catch(() => a.price);
         const message = formatSignal(pair, a, live);
