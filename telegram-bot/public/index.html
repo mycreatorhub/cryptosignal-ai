@@ -81,6 +81,7 @@ const pairSelect=document.getElementById('pair');
 let chartInterval='5m';
 let chartCandles=[];
 let chartLivePrice=null;
+let chartLevels=null;
 const chartCanvas=document.getElementById('priceChart');
 const chartMessage=document.getElementById('chartMessage');
 function drawPriceChart(){
@@ -102,6 +103,19 @@ function drawPriceChart(){
  for(let i=0;i<=4;i++){const yy=top+plotH*i/4;ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(w-right,yy);ctx.stroke();const val=max-(max-min)*i/4;ctx.fillText(val.toLocaleString('en-US',{maximumFractionDigits:2}),w-right+6,yy+3);}
  const step=plotW/chartCandles.length,candleW=Math.max(2,Math.min(9,step*.62));
  chartCandles.forEach((c,i)=>{const x=left+i*step+step/2,up=c.c>=c.o,color=up?'#32d69a':'#ff647c';ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y(c.h));ctx.lineTo(x,y(c.l));ctx.stroke();const yo=y(c.o),yc=y(c.c),body=Math.max(1,Math.abs(yc-yo));ctx.fillRect(x-candleW/2,Math.min(yo,yc),candleW,body);});
+ if(chartLevels){
+  const overlays=[
+   {key:'entry',label:'ENTRY',color:'#77a7ff',dash:[5,3]},
+   {key:'stop',label:'STOP',color:'#ff647c',dash:[3,3]},
+   {key:'tp1',label:'TP1',color:'#32d69a',dash:[5,3]},
+   {key:'tp2',label:'TP2',color:'#65cfae',dash:[2,4]},
+   {key:'liquidity',label:'LIQ',color:'#d6a8ff',dash:[6,3]},
+   {key:'mss',label:'MSS',color:'#f2c66d',dash:[2,3]},
+   {key:'fvgLow',label:'FVG L',color:'#b58cff',dash:[2,2]},
+   {key:'fvgHigh',label:'FVG H',color:'#b58cff',dash:[2,2]}
+  ];
+  overlays.forEach(item=>{const value=chartLevels[item.key];if(!Number.isFinite(value)||value<min||value>max)return;const yy=y(value);ctx.save();ctx.setLineDash(item.dash);ctx.strokeStyle=item.color;ctx.globalAlpha=.9;ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(w-right,yy);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;ctx.fillStyle=item.color;ctx.font='9px system-ui';ctx.textAlign='left';ctx.fillText(item.label,w-right+5,yy-3);ctx.restore();});
+ }
  if(chartLivePrice&&Number.isFinite(chartLivePrice)){const yy=y(chartLivePrice);ctx.setLineDash([4,3]);ctx.strokeStyle='#77a7ff';ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(w-right,yy);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#77a7ff';ctx.fillRect(w-right+2,yy-8,right-4,16);ctx.fillStyle='#07101d';ctx.fillText(chartLivePrice.toLocaleString('en-US',{maximumFractionDigits:2}),w-right+5,yy+3);}
  ctx.textAlign='left';ctx.fillStyle='#8292aa';const first=new Date(chartCandles[0].t),last=new Date(chartCandles.at(-1).t);ctx.fillText(first.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),left,hh-7);ctx.textAlign='right';ctx.fillText(last.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),w-right,hh-7);
 }
@@ -130,6 +144,17 @@ async function loadMarket(){
   const response=await fetch('/api/market?pair='+encodeURIComponent(pair),{cache:'no-store'});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Market API unavailable');
   const a=data.analysis||{};
+  const activeSignal=a.state==='BUY'||a.state==='SELL';
+  const validLevel=value=>value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))&&Number(value)>0?Number(value):null;
+  chartLevels={
+   entry:activeSignal?validLevel(a.entry):null,
+   stop:activeSignal?validLevel(a.stop):null,
+   tp1:activeSignal?validLevel(a.tp1):null,
+   tp2:activeSignal?validLevel(a.tp2):null,
+   liquidity:validLevel(a.liquidityLevel),mss:validLevel(a.mssLevel),
+   fvgLow:validLevel(a.fvgLow),fvgHigh:validLevel(a.fvgHigh)
+  };
+  drawPriceChart();
   setText('livePrice',money(data.price));
   setText('priceUpdated','Coinbase spot · Updated '+new Date(data.updatedAt).toLocaleTimeString());
   setText('biasValue',a.bias||'—');setText('setupValue',a.stage||'—');
