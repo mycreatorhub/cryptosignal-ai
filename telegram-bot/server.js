@@ -106,6 +106,19 @@ async function supabaseRequest(path, options = {}) {
   return body ? JSON.parse(body) : null;
 }
 
+async function recordAppUser(telegramUserId, source) {
+  if (!DB_ENABLED || !Number.isSafeInteger(Number(telegramUserId)) || Number(telegramUserId) <= 0) return;
+  const now = new Date().toISOString();
+  const row = { telegram_user_id: Number(telegramUserId), last_seen_at: now };
+  if (source === "bot") row.bot_started_at = now;
+  if (source === "mini_app") row.mini_app_opened_at = now;
+  await supabaseRequest("app_users?on_conflict=telegram_user_id", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify(row)
+  });
+}
+
 async function loadAlertSubscriptions() {
   if (!DB_ENABLED) {
     alertSubscriptionsLoaded = true;
@@ -644,6 +657,9 @@ async function handleUpdate(update) {
     else if (action === "help") text = "/help";
   }
   if (!chatId || !text) return;
+  if (text === "/start" && message?.from?.id) {
+    recordAppUser(message.from.id, "bot").catch(error => console.error("User analytics tracking failed:", error.message));
+  }
 
   let reply;
   if (text === "/alerts" || text.startsWith("/alerts ")) {
@@ -803,6 +819,46 @@ const server = createServer(async (req, res) => {
       catch (error) { return { pair, error: error.message }; }
     }));
     return res.end(JSON.stringify({ markets: entries, updatedAt: new Date().toISOString() }));
+  }
+
+  if (req.method === "POST" && requestPath === "/api/analytics/ping") {
+    try {
+      const body = await readJsonBody(req);
+      const verified = verifyTelegramInitData(body.initData);
+      if (!verified) { res.writeHead(401); return res.end(JSON.stringify({ error: "Telegram verification failed." })); }
+      await recordAppUser(verified.id, "mini_app");
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ ok: true }));
+    } catch (error) {
+      res.writeHead(503, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "User analytics unavailable." }));
+    }
+  }
+
+  if (req.method === "GET" && requestPath === "/api/analytics") {
+    try {
+      if (!DB_ENABLED) throw new Error("Persistent storage is unavailable.");
+      const rows = await supabaseRequest("app_users?select=first_seen_at,last_seen_at,bot_started_at,mini_app_opened_at&limit=10000");
+      const now = Date.now();
+      const since = days => now - days * 86400000;
+      const count = predicate => rows.filter(predicate).length;
+      const validDate = value => { const n = Date.parse(value || ""); return Number.isFinite(n) ? n : 0; };
+      const result = {
+        totalUsers: rows.length,
+        botUsers: count(row => Boolean(row.bot_started_at)),
+        miniAppUsers: count(row => Boolean(row.mini_app_opened_at)),
+        newToday: count(row => validDate(row.first_seen_at) >= since(1)),
+        new7Days: count(row => validDate(row.first_seen_at) >= since(7)),
+        active7Days: count(row => validDate(row.last_seen_at) >= since(7)),
+        active30Days: count(row => validDate(row.last_seen_at) >= since(30)),
+        updatedAt: new Date().toISOString()
+      };
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+      return res.end(JSON.stringify(result));
+    } catch (error) {
+      res.writeHead(503, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "User analytics unavailable." }));
+    }
   }
 
   if (req.method === "GET" && requestPath === "/api/performance") {
