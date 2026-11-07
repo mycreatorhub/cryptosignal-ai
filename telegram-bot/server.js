@@ -13,6 +13,7 @@ const DB_ENABLED = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 
 const ALERT_SCAN_INTERVAL_MS = Math.max(60000, Number(process.env.ALERT_SCAN_INTERVAL_MS || 300000));
 const alertChats = new Set();
+let alertSubscriptionsLoaded = !DB_ENABLED;
 const lastAlertByPair = new Map();
 const signalHistory = [];
 const MAX_SIGNAL_HISTORY = 500;
@@ -98,6 +99,37 @@ async function supabaseRequest(path, options = {}) {
   }
   const body = await response.text();
   return body ? JSON.parse(body) : null;
+}
+
+async function loadAlertSubscriptions() {
+  if (!DB_ENABLED) {
+    alertSubscriptionsLoaded = true;
+    return;
+  }
+  const rows = await supabaseRequest("alert_subscriptions?enabled=eq.true&select=telegram_user_id");
+  alertChats.clear();
+  for (const row of rows || []) {
+    const chatId = Number(row.telegram_user_id);
+    if (Number.isSafeInteger(chatId) && chatId > 0) alertChats.add(chatId);
+  }
+  alertSubscriptionsLoaded = true;
+}
+
+async function setAlertSubscription(chatId, enabled) {
+  if (DB_ENABLED) {
+    if (!alertSubscriptionsLoaded) await loadAlertSubscriptions();
+    await supabaseRequest("alert_subscriptions?on_conflict=telegram_user_id", {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({
+        telegram_user_id: chatId,
+        enabled: Boolean(enabled),
+        updated_at: new Date().toISOString()
+      })
+    });
+  }
+  if (enabled) alertChats.add(chatId);
+  else alertChats.delete(chatId);
 }
 
 function closedOnly(candles) {
@@ -504,7 +536,7 @@ A candle touching both TP1 and SL is excluded from win-rate calculations. Experi
 }
 
 async function scanForAlerts() {
-  if (alertScanRunning || alertChats.size === 0) return;
+  if (alertScanRunning || !alertSubscriptionsLoaded || alertChats.size === 0) return;
   alertScanRunning = true;
   try {
     for (const pair of Object.keys(COINS)) {
@@ -557,11 +589,19 @@ async function handleUpdate(update) {
   if (text === "/alerts" || text.startsWith("/alerts ")) {
     const action = (text.split(/\s+/)[1] || "").toLowerCase();
     if (action === "on") {
-      alertChats.add(chatId);
-      reply = `🔔 Automatic alerts enabled. I'll scan the supported Coinbase pairs about every ${Math.round(ALERT_SCAN_INTERVAL_MS / 60000)} minute(s) and send only new BUY/SELL setups. Keep in mind that alerts may pause if the hosting service sleeps or restarts.\n\nSend /alerts off to stop.`;
+      try {
+        await setAlertSubscription(chatId, true);
+        reply = `🔔 Automatic alerts enabled. I'll scan the supported Coinbase pairs about every ${Math.round(ALERT_SCAN_INTERVAL_MS / 60000)} minute(s) and send only new BUY/SELL setups. Your subscription is saved when Supabase is configured.\n\nSend /alerts off to stop.`;
+      } catch (error) {
+        reply = `⚠️ I couldn't save your alert subscription. Please try again.\n${error.message}`;
+      }
     } else if (action === "off") {
-      alertChats.delete(chatId);
-      reply = "🔕 Automatic alerts disabled for this chat.";
+      try {
+        await setAlertSubscription(chatId, false);
+        reply = "🔕 Automatic alerts disabled for this chat.";
+      } catch (error) {
+        reply = `⚠️ I couldn't update your alert subscription. Please try again.\n${error.message}`;
+      }
     } else {
       reply = "Usage:\n/alerts on — enable automatic BUY/SELL alerts\n/alerts off — disable alerts";
     }
@@ -627,10 +667,15 @@ const server = createServer(async (req, res) => {
         res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
         return res.end(JSON.stringify({ error: "Invalid alert action." }));
       }
-      if (action === "on") alertChats.add(telegramUser.id);
-      if (action === "off") alertChats.delete(telegramUser.id);
+      if (DB_ENABLED && !alertSubscriptionsLoaded) await loadAlertSubscriptions();
+      if (action === "on") await setAlertSubscription(telegramUser.id, true);
+      if (action === "off") await setAlertSubscription(telegramUser.id, false);
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
-      return res.end(JSON.stringify({ ok: true, enabled: alertChats.has(telegramUser.id) }));
+      return res.end(JSON.stringify({
+        ok: true,
+        enabled: alertChats.has(telegramUser.id),
+        persistent: DB_ENABLED
+      }));
     } catch (error) {
       res.writeHead(400, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
       return res.end(JSON.stringify({ error: error.message || "Could not process alert settings." }));
@@ -737,8 +782,14 @@ const server = createServer(async (req, res) => {
   res.writeHead(404); res.end("Not found");
 });
 
-server.listen(PORT, "0.0.0.0", () => {
+server.listen(PORT, "0.0.0.0", async () => {
   console.log(`CryptoSignal Telegram Bot listening on port ${PORT}`);
   setBotCommands().catch(error => console.error("Telegram command menu setup failed:", error.message));
+  try {
+    await loadAlertSubscriptions();
+    console.log(`Loaded ${alertChats.size} enabled alert subscription(s) from ${DB_ENABLED ? "Supabase" : "memory"}.`);
+  } catch (error) {
+    console.error("Alert subscription restore failed; alert scanning will remain paused until storage is available:", error.message);
+  }
   setInterval(() => { scanForAlerts().catch(error => console.error("Alert scan error:", error)); }, ALERT_SCAN_INTERVAL_MS);
 });
