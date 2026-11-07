@@ -37,7 +37,8 @@
 </main>
 <nav class="bottom"><div class="nav"><button class="active" data-page="dashboard"><span>⌂</span>Home</button><button data-page="markets"><span>▥</span>Markets</button><button data-page="performance"><span>⌁</span>Performance</button><button data-page="settings"><span>⚙</span>Settings</button></div></nav>
 <script>
-const statusEl=document.getElementById('backendStatus');\nasync function checkBackend(){try{const r=await fetch('/health',{cache:'no-store'});const d=await r.json();if(!r.ok||d.ok!==true)throw new Error('Health check failed');statusEl.className='status online';statusEl.textContent='● BACKEND ONLINE';}catch(e){statusEl.className='status offline';statusEl.textContent='● CONNECTION ISSUE';}}
+const statusEl=document.getElementById('backendStatus');
+async function checkBackend(){try{const r=await fetch('/health',{cache:'no-store'});const d=await r.json();if(!r.ok||d.ok!==true)throw new Error('Health check failed');statusEl.className='status online';statusEl.textContent='● BACKEND ONLINE';}catch(e){statusEl.className='status offline';statusEl.textContent='● CONNECTION ISSUE';}}
 const buttons=[...document.querySelectorAll('[data-page]')];
 buttons.forEach(button=>button.addEventListener('click',()=>{buttons.forEach(x=>x.classList.toggle('active',x===button));document.querySelectorAll('.page').forEach(page=>page.classList.toggle('active',page.id===button.dataset.page));if(button.dataset.page==='performance')loadPerformance();if(button.dataset.page==='markets')loadMarkets();}));
 const pairSelect=document.getElementById('pair');
