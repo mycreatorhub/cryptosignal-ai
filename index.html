@@ -348,6 +348,56 @@ function updateSignalResults(a,symbol){
 }
 
 renderPerformance();
+
+const TOP_CRYPTO_LIMIT=100;
+const STABLECOIN_SYMBOLS=new Set(["USDT","USDC","DAI","FDUSD","TUSD","USDE","USDS","PYUSD","USDP","BUSD","USD1","EURC"]);
+let topCryptoPairs=[];
+async function loadTopCryptoPairs(){
+  const status=$("status");
+  try{
+    status.textContent="Loading the top 100 crypto assets by market cap…";
+    const [marketRes,exchangeRes]=await Promise.all([
+      fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false"),
+      fetch("https://api.binance.com/api/v3/exchangeInfo")
+    ]);
+    if(!marketRes.ok)throw Error("CoinGecko market list unavailable ("+marketRes.status+").");
+    if(!exchangeRes.ok)throw Error("Binance trading-pair list unavailable ("+exchangeRes.status+").");
+    const markets=await marketRes.json(),exchange=await exchangeRes.json();
+    if(!Array.isArray(markets)||!Array.isArray(exchange.symbols))throw Error("Invalid market-list response.");
+    const available=new Set(exchange.symbols.filter(x=>x.status==="TRADING"&&x.quoteAsset==="USDT"&&x.isSpotTradingAllowed!==false).map(x=>x.symbol));
+    const seen=new Set(),pairs=[];
+    for(const coin of markets){
+      const base=String(coin.symbol||"").toUpperCase();
+      if(!base||STABLECOIN_SYMBOLS.has(base)||seen.has(base))continue;
+      const pair=base+"USDT";
+      if(!available.has(pair))continue;
+      seen.add(base);
+      pairs.push({symbol:pair,name:coin.name||base,rank:coin.market_cap_rank||pairs.length+1});
+      if(pairs.length>=TOP_CRYPTO_LIMIT)break;
+    }
+    if(pairs.length<TOP_CRYPTO_LIMIT)throw Error("Only "+pairs.length+" top-market-cap coins currently have a matching Binance USDT spot pair; keeping the existing list rather than showing fewer than 100.");
+    topCryptoPairs=pairs;
+    const selects=["pair","smcBacktestPair","backtestPair"].map(id=>$(id));
+    selects.forEach(sel=>{
+      const previous=sel.value||"BTCUSDT";
+      sel.innerHTML="";
+      pairs.forEach((coin,index)=>{
+        const option=document.createElement("option");
+        option.value=coin.symbol;
+        option.textContent="#"+(index+1)+" "+coin.name+" ("+coin.symbol.replace("USDT","")+") / USDT";
+        sel.appendChild(option);
+      });
+      sel.value=pairs.some(x=>x.symbol===previous)?previous:"BTCUSDT";
+    });
+    status.textContent="Loaded "+pairs.length+" top crypto assets by market cap with active Binance USDT spot pairs. Select any asset and scan.";
+    return pairs;
+  }catch(error){
+    status.textContent="Top-100 list could not load: "+error.message+" The original BTC, ETH and SOL options remain available.";
+    status.className="status error";
+    return [];
+  }
+}
+
 function ema(values,period){let k=2/(period+1),out=[];let seed=values.slice(0,period).reduce((a,b)=>a+b,0)/period;out[period-1]=seed;for(let i=period;i<values.length;i++)out[i]=values[i]*k+out[i-1]*(1-k);return out}
 function rsi(vals,p=14){let gains=0,losses=0;for(let i=1;i<=p;i++){let d=vals[i]-vals[i-1];gains+=Math.max(d,0);losses+=Math.max(-d,0)}let ag=gains/p,al=losses/p;for(let i=p+1;i<vals.length;i++){let d=vals[i]-vals[i-1];ag=(ag*(p-1)+Math.max(d,0))/p;al=(al*(p-1)+Math.max(-d,0))/p}return al===0?100:100-100/(1+ag/al)}
 function atr(c,p=14){let ts=c.map((x,i)=>i?Math.max(x[2]-x[3],Math.abs(x[2]-c[i-1][4]),Math.abs(x[3]-c[i-1][4])):x[2]-x[3]);return ts.slice(-p).reduce((a,b)=>a+b,0)/p}
@@ -951,6 +1001,7 @@ async function refreshLivePrice(){
   }
 }
 
+loadTopCryptoPairs().then(()=>{try{scan($("pair").value)}catch(e){}});
 refreshLivePrice();
 setInterval(refreshLivePrice,5000);
 $("refresh").addEventListener("click",async()=>{try{await scan()}catch{}});
