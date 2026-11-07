@@ -1,4 +1,7 @@
 import { createServer } from "node:http";
+import { readFileSync } from "node:fs";
+
+const MINI_APP_HTML = readFileSync(new URL("./public/index.html", import.meta.url), "utf8");
 
 const PORT = Number(process.env.PORT || 3000);
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -554,6 +557,11 @@ async function handleUpdate(update) {
 
 const server = createServer(async (req, res) => {
   const requestPath = new URL(req.url, "http://localhost").pathname;
+  if (req.method === "GET" && requestPath === "/app") {
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+    return res.end(MINI_APP_HTML);
+  }
+
   if (req.method === "GET" && (requestPath === "/" || requestPath === "/health")) {
     res.writeHead(200, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({
