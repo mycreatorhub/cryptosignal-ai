@@ -499,7 +499,7 @@ async function handleUpdate(update) {
 }
 
 const server = createServer(async (req, res) => {
-  if (req.method === "GET" && req.url === "/") {
+  if (req.method === "GET" && (req.url === "/" || req.url === "/health" || req.url.startsWith("/?"))) {
     res.writeHead(200, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({
       ok: true,
