@@ -797,6 +797,28 @@ const server = createServer(async (req, res) => {
       const open = rows.filter(x => x.outcome === "OPEN").length;
       const ambiguous = rows.filter(x => x.outcome === "AMBIGUOUS").length;
       const decided = wins + losses;
+      const directionStats = ["BUY", "SELL"].map(side => {
+        const sideRows = rows.filter(row => row.side === side);
+        const sideWins = sideRows.filter(row => row.outcome === "WIN").length;
+        const sideLosses = sideRows.filter(row => row.outcome === "LOSS").length;
+        const resolved = sideWins + sideLosses;
+        return { side, wins: sideWins, losses: sideLosses, resolved,
+          winRate: resolved ? Number((sideWins / resolved * 100).toFixed(1)) : null };
+      });
+      const durations = rows.filter(row => (row.outcome === "WIN" || row.outcome === "LOSS") && row.created_at && row.closed_at)
+        .map(row => Date.parse(row.closed_at) - Date.parse(row.created_at))
+        .filter(ms => Number.isFinite(ms) && ms >= 0);
+      const averageDurationMs = durations.length ? Math.round(durations.reduce((sum, ms) => sum + ms, 0) / durations.length) : null;
+      const resolvedRecent = rows.filter(row => row.outcome === "WIN" || row.outcome === "LOSS")
+        .sort((a, b) => Date.parse(b.closed_at || b.created_at) - Date.parse(a.closed_at || a.created_at));
+      let currentStreak = { outcome: null, count: 0 };
+      if (resolvedRecent.length) {
+        currentStreak.outcome = resolvedRecent[0].outcome;
+        for (const row of resolvedRecent) {
+          if (row.outcome !== currentStreak.outcome) break;
+          currentStreak.count++;
+        }
+      }
       const pairStats = Object.values(rows.reduce((groups, row) => {
         const pair = row.pair || "UNKNOWN";
         if (!groups[pair]) groups[pair] = { pair, wins: 0, losses: 0, open: 0, ambiguous: 0 };
@@ -809,10 +831,12 @@ const server = createServer(async (req, res) => {
         const resolved = item.wins + item.losses;
         return { ...item, resolved, winRate: resolved ? Number((item.wins / resolved * 100).toFixed(1)) : null };
       }).sort((a, b) => b.resolved - a.resolved || b.wins - a.wins || a.pair.localeCompare(b.pair));
+      const bestPair = pairStats.find(item => item.resolved > 0) || null;
       return res.end(JSON.stringify({
         tracked: rows.length, wins, losses, open, ambiguous,
         winRate: decided ? Number((wins / decided * 100).toFixed(1)) : null,
-        pairStats, persistent, records: rows.slice(0, 25)
+        directionStats, averageDurationMs, durationSamples: durations.length,
+        currentStreak, bestPair, pairStats, persistent, records: rows.slice(0, 25)
       }));
     } catch (error) {
       res.writeHead(502, { "Content-Type": "application/json; charset=utf-8" });
