@@ -499,7 +499,8 @@ async function handleUpdate(update) {
 }
 
 const server = createServer(async (req, res) => {
-  if (req.method === "GET" && (req.url === "/" || req.url === "/health" || req.url.startsWith("/?"))) {
+  const requestPath = new URL(req.url, "http://localhost").pathname;
+  if (req.method === "GET" && (requestPath === "/" || requestPath === "/health")) {
     res.writeHead(200, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({
       ok: true,
