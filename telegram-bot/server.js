@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { readFileSync } from "node:fs";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 const MINI_APP_HTML = readFileSync(new URL("./public/index.html", import.meta.url), "utf8");
 
@@ -15,6 +16,7 @@ const alertChats = new Set();
 const lastAlertByPair = new Map();
 const signalHistory = [];
 const MAX_SIGNAL_HISTORY = 500;
+const TELEGRAM_INIT_DATA_MAX_AGE_SECONDS = 86400;
 let alertScanRunning = false;
 
 const COINS = {
@@ -30,6 +32,54 @@ const COINS = {
   AVAXUSDT: "AVAX-USD"
 };
 
+
+
+function verifyTelegramInitData(initData) {
+  if (!BOT_TOKEN || typeof initData !== "string" || !initData || initData.length > 10000) return null;
+  try {
+    const params = new URLSearchParams(initData);
+    const receivedHash = params.get("hash") || "";
+    if (!/^[a-f0-9]{64}$/i.test(receivedHash)) return null;
+    params.delete("hash");
+    const dataCheckString = [...params.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => key + "=" + value)
+      .join("\n");
+    const secretKey = createHmac("sha256", "WebAppData").update(BOT_TOKEN).digest();
+    const calculatedHash = createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
+    const received = Buffer.from(receivedHash, "hex");
+    const calculated = Buffer.from(calculatedHash, "hex");
+    if (received.length !== calculated.length || !timingSafeEqual(received, calculated)) return null;
+    const authDate = Number(params.get("auth_date"));
+    const now = Math.floor(Date.now() / 1000);
+    if (!Number.isFinite(authDate) || authDate > now + 300 || now - authDate > TELEGRAM_INIT_DATA_MAX_AGE_SECONDS) return null;
+    const chatType = params.get("chat_type");
+    if (chatType && chatType !== "private") return null;
+    const user = JSON.parse(params.get("user") || "null");
+    if (!user || !Number.isSafeInteger(Number(user.id)) || Number(user.id) <= 0) return null;
+    return { id: Number(user.id) };
+  } catch {
+    return null;
+  }
+}
+
+async function readJsonBody(req, maxBytes = 20000) {
+  return await new Promise((resolve, reject) => {
+    let raw = "";
+    req.on("data", chunk => {
+      raw += chunk;
+      if (raw.length > maxBytes) {
+        reject(new Error("Request body too large."));
+        req.destroy();
+      }
+    });
+    req.on("end", () => {
+      try { resolve(JSON.parse(raw || "{}")); }
+      catch { reject(new Error("Invalid JSON body.")); }
+    });
+    req.on("error", reject);
+  });
+}
 
 async function supabaseRequest(path, options = {}) {
   if (!DB_ENABLED) throw new Error("Supabase storage is not configured.");
@@ -219,6 +269,7 @@ async function coinbasePrice(symbol) {
 
 const MAIN_MENU = {
   inline_keyboard: [
+    [{ text: "📱 Open CryptoSignal AI", web_app: { url: "https://cryptosignal-ai.onrender.com/app" } }],
     [{ text: "🎯 Get Trading Signal", callback_data: "signal:BTCUSDT" }],
     [{ text: "💰 Live BTC Price", callback_data: "price:BTCUSDT" }, { text: "📊 Supported Pairs", callback_data: "pairs" }],
     [{ text: "🔔 Alerts ON", callback_data: "alerts:on" }, { text: "🔕 Alerts OFF", callback_data: "alerts:off" }],
@@ -560,6 +611,30 @@ const server = createServer(async (req, res) => {
   if (req.method === "GET" && requestPath === "/app") {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
     return res.end(MINI_APP_HTML);
+  }
+
+
+  if (req.method === "POST" && requestPath === "/api/alerts") {
+    try {
+      const body = await readJsonBody(req);
+      const telegramUser = verifyTelegramInitData(body.initData);
+      if (!telegramUser) {
+        res.writeHead(401, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+        return res.end(JSON.stringify({ error: "Telegram authentication failed. Close and reopen this Mini App from your bot in Telegram." }));
+      }
+      const action = body.action;
+      if (!["status", "on", "off"].includes(action)) {
+        res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+        return res.end(JSON.stringify({ error: "Invalid alert action." }));
+      }
+      if (action === "on") alertChats.add(telegramUser.id);
+      if (action === "off") alertChats.delete(telegramUser.id);
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+      return res.end(JSON.stringify({ ok: true, enabled: alertChats.has(telegramUser.id) }));
+    } catch (error) {
+      res.writeHead(400, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+      return res.end(JSON.stringify({ error: error.message || "Could not process alert settings." }));
+    }
   }
 
   if (req.method === "GET" && requestPath === "/api/market") {
