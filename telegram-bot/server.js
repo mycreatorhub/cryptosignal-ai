@@ -3,6 +3,9 @@ import { createServer } from "node:http";
 const PORT = Number(process.env.PORT || 3000);
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || "";
+const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const DB_ENABLED = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 
 const ALERT_SCAN_INTERVAL_MS = Math.max(60000, Number(process.env.ALERT_SCAN_INTERVAL_MS || 300000));
 const alertChats = new Set();
@@ -24,7 +27,26 @@ const COINS = {
   AVAXUSDT: "AVAX-USD"
 };
 
-function closedOnly(candles) {
+
+async function supabaseRequest(path, options = {}) {
+  if (!DB_ENABLED) throw new Error("Supabase storage is not configured.");
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Supabase API error ${response.status}: ${detail.slice(0, 300)}`);
+  }
+  const body = await response.text();
+  return body ? JSON.parse(body) : null;
+}
+\nfunction closedOnly(candles) {
   return candles.filter(c => c.closeTime < Date.now());
 }
 
@@ -328,13 +350,13 @@ async function scanForAlerts() {
       try {
         const [five, fifteen] = await Promise.all([getCandles(pair, "5m"), getCandles(pair, "15m")]);
         const a = analyzeSMC(five, fifteen);
-        updateSignalOutcomes(pair, five);
+        await updateSignalOutcomes(pair, five);
         if (a.state !== "BUY" && a.state !== "SELL") {
           lastAlertByPair.delete(pair);
           continue;
         }
         const key = [a.state, a.entry, a.stop, a.tp1, a.tp2, a.fvgLow, a.fvgHigh].join("|");
-        recordSignal(pair, a);
+        await recordSignal(pair, a);
         if (lastAlertByPair.get(pair) === key) continue;
         const live = await coinbasePrice(pair).catch(() => a.price);
         const message = formatSignal(pair, a, live);
@@ -389,7 +411,7 @@ async function handleUpdate(update) {
   } else if (text === "/status") {
     reply = "🟢 CRYPTOSIGNAL AI STATUS\n\nBot process: Running\nAutomatic alerts for this chat: " + (alertChats.has(chatId) ? "ON 🔔" : "OFF 🔕") + "\nScan interval: " + Math.round(ALERT_SCAN_INTERVAL_MS / 60000) + " minute(s)\nSupported pairs: " + Object.keys(COINS).length + "\n\nNote: status reflects this running process; hosting sleep/restarts can pause alerts.";
   } else if (text === "/performance") {
-    reply = formatPerformance();
+    reply = await formatPerformance();
   } else if (text === "/help") {
     reply = "Commands:\n/start — open dashboard\n/price BTCUSDT — latest Coinbase spot price\n/signal BTCUSDT — 5m SMC setup with 15m context\n/alerts on — enable automatic BUY/SELL alerts\n/alerts off — disable alerts\n/pairs — show supported pairs\n/status — check bot and alert status\n/performance — view tracked signal outcomes\n/help — show commands\n\nSignals are experimental and are not financial advice.";
   } else if (text.startsWith("/price")) {
