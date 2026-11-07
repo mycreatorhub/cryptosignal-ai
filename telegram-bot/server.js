@@ -411,7 +411,7 @@ Experimental analysis only. Not financial advice.`;
 
 async function recordSignal(pair, a) {
   if (a.state !== "BUY" && a.state !== "SELL") return;
-  const key = [pair, a.state, a.entry, a.stop, a.tp1, a.fvgLow, a.fvgHigh].join("|");
+  const key = [pair, a.state, a.entry, a.stop, a.tp1, a.tp2, a.fvgLow, a.fvgHigh].join("|");
   if (DB_ENABLED) {
     try {
       await supabaseRequest("signal_history?on_conflict=signal_key", {
@@ -419,7 +419,7 @@ async function recordSignal(pair, a) {
         headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
         body: JSON.stringify({
           signal_key: key, pair, side: a.state, entry: a.entry,
-          stop: a.stop, tp1: a.tp1, outcome: "OPEN"
+          stop: a.stop, tp1: a.tp1, tp2: a.tp2, outcome: "OPEN"
         })
       });
       return;
@@ -429,63 +429,85 @@ async function recordSignal(pair, a) {
   }
   if (signalHistory.some(x => x.key === key)) return;
   signalHistory.push({
-    key, pair, side: a.state, entry: a.entry, stop: a.stop, tp1: a.tp1,
-    createdAt: Date.now(), outcome: "OPEN"
+    key, pair, side: a.state, entry: a.entry, stop: a.stop,
+    tp1: a.tp1, tp2: a.tp2, createdAt: Date.now(),
+    outcome: "OPEN", tp1_at: null, tp2_at: null
   });
   while (signalHistory.length > MAX_SIGNAL_HISTORY) signalHistory.shift();
 }
 
 async function updateSignalOutcomes(pair, candles) {
-  const closed = closedOnly(candles);
+  const closed = closedOnly(candles).sort((a, b) => a.closeTime - b.closeTime);
+  const processSignal = async signal => {
+    let tp1At = signal.tp1_at || null;
+    let tp2At = signal.tp2_at || null;
+    let outcome = signal.outcome;
+    let closedAt = signal.closed_at || null;
+    let changed = false;
+
+    for (const candle of closed) {
+      if (candle.closeTime <= Date.parse(signal.created_at || signal.createdAt)) continue;
+      const hitStop = signal.side === "BUY"
+        ? candle.l <= Number(signal.stop) : candle.h >= Number(signal.stop);
+      const hitTp1 = signal.side === "BUY"
+        ? candle.h >= Number(signal.tp1) : candle.l <= Number(signal.tp1);
+      const hitTp2 = signal.tp2 != null && (signal.side === "BUY"
+        ? candle.h >= Number(signal.tp2) : candle.l <= Number(signal.tp2));
+
+      if (!tp1At && outcome === "OPEN" && hitStop && hitTp1) {
+        outcome = "AMBIGUOUS";
+        closedAt = new Date(candle.closeTime).toISOString();
+        changed = true;
+        break;
+      }
+      if (!tp1At && outcome === "OPEN" && hitStop) {
+        outcome = "LOSS";
+        closedAt = new Date(candle.closeTime).toISOString();
+        changed = true;
+        break;
+      }
+      if (!tp1At && hitTp1) {
+        tp1At = new Date(candle.closeTime).toISOString();
+        if (outcome === "OPEN") {
+          outcome = "WIN";
+          closedAt = tp1At;
+        }
+        changed = true;
+      }
+      if (tp1At && !tp2At && hitTp2) {
+        tp2At = new Date(candle.closeTime).toISOString();
+        changed = true;
+      }
+    }
+
+    if (!changed) return;
+    if (DB_ENABLED) {
+      const patch = { outcome, closed_at: closedAt, tp1_at: tp1At, tp2_at: tp2At };
+      await supabaseRequest(`signal_history?id=eq.${signal.id}`, {
+        method: "PATCH", body: JSON.stringify(patch)
+      });
+    } else {
+      signal.outcome = outcome;
+      signal.closedAt = closedAt ? Date.parse(closedAt) : null;
+      signal.tp1_at = tp1At;
+      signal.tp2_at = tp2At;
+    }
+  };
+
   if (DB_ENABLED) {
     try {
-      const open = await supabaseRequest(
-        `signal_history?pair=eq.${encodeURIComponent(pair)}&outcome=eq.OPEN&select=id,side,stop,tp1,created_at`
+      const rows = await supabaseRequest(
+        `signal_history?pair=eq.${encodeURIComponent(pair)}&outcome=in.(OPEN,WIN)&select=id,side,stop,tp1,tp2,created_at,outcome,closed_at,tp1_at,tp2_at`
       );
-      for (const signal of open || []) {
-        for (const candle of closed) {
-          if (candle.closeTime <= Date.parse(signal.created_at)) continue;
-          const hitStop = signal.side === "BUY" ? candle.l <= Number(signal.stop) : candle.h >= Number(signal.stop);
-          const hitTarget = signal.side === "BUY" ? candle.h >= Number(signal.tp1) : candle.l <= Number(signal.tp1);
-          let outcome = null;
-          if (hitStop && hitTarget) outcome = "AMBIGUOUS";
-          else if (hitStop) outcome = "LOSS";
-          else if (hitTarget) outcome = "WIN";
-          if (outcome) {
-            await supabaseRequest(`signal_history?id=eq.${signal.id}`, {
-              method: "PATCH",
-              body: JSON.stringify({ outcome, closed_at: new Date(candle.closeTime).toISOString() })
-            });
-            break;
-          }
-        }
-      }
+      for (const signal of rows || []) await processSignal(signal);
       return;
     } catch (error) {
       console.error("Persistent outcome update failed:", error.message);
     }
   }
   for (const signal of signalHistory) {
-    if (signal.pair !== pair || signal.outcome !== "OPEN") continue;
-    for (const candle of closed) {
-      if (candle.closeTime <= signal.createdAt) continue;
-      const hitStop = signal.side === "BUY" ? candle.l <= signal.stop : candle.h >= signal.stop;
-      const hitTarget = signal.side === "BUY" ? candle.h >= signal.tp1 : candle.l <= signal.tp1;
-      if (hitStop && hitTarget) {
-        signal.outcome = "AMBIGUOUS";
-        signal.closedAt = candle.closeTime;
-        break;
-      }
-      if (hitStop) {
-        signal.outcome = "LOSS";
-        signal.closedAt = candle.closeTime;
-        break;
-      }
-      if (hitTarget) {
-        signal.outcome = "WIN";
-        signal.closedAt = candle.closeTime;
-        break;
-      }
+    if (signal.pair === pair && (signal.outcome === "OPEN" || signal.outcome === "WIN")) {
+      await processSignal(signal);
     }
   }
 }
