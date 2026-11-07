@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#080d18">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <title>CryptoSignal AI</title>
 <style>
 :root{color-scheme:dark;--bg:#080d18;--panel:#101827;--panel2:#141f31;--line:#233148;--muted:#8fa0b8;--text:#f3f6fc;--green:#32d69a;--red:#ff647c;--blue:#77a7ff;--amber:#f6c66b}
@@ -16,7 +17,7 @@
 .section-title{font-size:14px;margin:20px 0 10px}.pair-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--line)}.coin{display:flex;align-items:center;gap:10px}.coin-icon{width:31px;height:31px;border-radius:50%;background:#1a2b43;display:grid;place-items:center;font-weight:800}.coin small{display:block;color:var(--muted);font-size:10px}.right{text-align:right}.right b{display:block}.right small{color:var(--muted);font-size:10px}
 .notice{padding:12px 13px;border:1px solid #57472b;background:#282113;border-radius:13px;color:#d8c18d;font-size:11px;margin-top:13px}
 .bottom{position:fixed;z-index:5;bottom:0;left:0;right:0;padding:9px 12px calc(9px + env(safe-area-inset-bottom));background:#0a111eeF;backdrop-filter:blur(18px);border-top:1px solid #26344a}.nav{max-width:620px;margin:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.nav button{border:0;background:transparent;color:#8192aa;border-radius:12px;padding:8px 3px;font:inherit;font-size:10px;display:grid;gap:4px;justify-items:center}.nav button span{font-size:18px}.nav button.active{color:var(--green);background:#173126}
-.page{display:none}.page.active{display:block}.empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:12px}.empty-state{display:grid;gap:8px}.empty-state strong{color:var(--text);font-size:14px}.empty-state span{line-height:1.6}.action{width:100%;border:1px solid #2a7458;background:#123b2c;color:#b6f7d8;border-radius:12px;padding:12px;font:inherit;font-weight:800;margin-top:12px}
+.page{display:none}.page.active{display:block}.empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:12px}.empty-state{display:grid;gap:8px}.empty-state strong{color:var(--text);font-size:14px}.empty-state span{line-height:1.6}.action{width:100%;border:1px solid #2a7458;background:#123b2c;color:#b6f7d8;border-radius:12px;padding:12px;font:inherit;font-weight:800;margin-top:12px}.action:disabled{opacity:.5}.action.off{border-color:#744052;background:#321b27;color:#ffc0cc}.alert-feedback{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5}
 @media(min-width:600px){.wrap{padding-top:28px}.grid{grid-template-columns:repeat(4,minmax(0,1fr))}.chart{height:155px}}
 </style>
 </head>
@@ -33,10 +34,44 @@
 </section>
 <section class="page" id="markets"><div class="eyebrow">Explore assets</div><h1>Markets</h1><div class="card" id="marketsRows"><div class="empty">Loading live Coinbase markets…</div></div></section>
 <section class="page" id="performance"><div class="eyebrow">Trading statistics</div><h1>Performance</h1><div class="grid"><div class="metric"><small>Tracked signals</small><b id="trackedValue">—</b></div><div class="metric"><small>Win rate</small><b id="winRateValue">—</b></div><div class="metric"><small>TP1 reached</small><b id="winsValue">—</b></div><div class="metric"><small>Stop losses</small><b id="lossesValue">—</b></div></div><div class="card" style="margin-top:13px"><div id="performanceRows" class="empty">Loading Supabase performance history…</div></div></section>
-<section class="page" id="settings"><div class="eyebrow">Personalize your experience</div><h1>Settings</h1><div class="card"><div class="pair-row"><b>Automatic alerts</b><span class="pill">BOT CONTROL</span></div><p class="sub">Alert controls will be linked to your Telegram account in the next stage.</p><button class="action" type="button" onclick="alert('Telegram alert controls will be connected in the next development stage.')">Connect alert controls</button></div><div class="notice">Experimental market analysis only. CryptoSignal AI does not guarantee results and is not financial advice.</div></section>
+<section class="page" id="settings"><div class="eyebrow">Personalize your experience</div><h1>Settings</h1><div class="card"><div class="pair-row"><b>Automatic alerts</b><span class="pill" id="alertsState">CHECKING</span></div><p class="sub" id="alertsDescription">Checking your Telegram alert subscription…</p><button class="action" id="alertsToggle" type="button" disabled>Loading alert settings…</button><div class="alert-feedback" id="alertsFeedback">Alert status is linked to the Telegram account that opened this Mini App.</div></div><div class="notice">Alerts may pause if the free hosting service sleeps or restarts. Experimental market analysis only; not financial advice.</div></section>
 </main>
 <nav class="bottom"><div class="nav"><button class="active" data-page="dashboard"><span>⌂</span>Home</button><button data-page="markets"><span>▥</span>Markets</button><button data-page="performance"><span>⌁</span>Performance</button><button data-page="settings"><span>⚙</span>Settings</button></div></nav>
 <script>
+
+const tgApp=window.Telegram?.WebApp;
+if(tgApp){tgApp.ready();tgApp.expand();}
+let alertsEnabled=false;
+const alertsStateEl=document.getElementById('alertsState');
+const alertsDescriptionEl=document.getElementById('alertsDescription');
+const alertsToggleEl=document.getElementById('alertsToggle');
+const alertsFeedbackEl=document.getElementById('alertsFeedback');
+async function requestAlertAction(action){
+ if(!tgApp?.initData){throw new Error('Open this Mini App from the CryptoSignal AI bot inside Telegram to manage alerts.');}
+ const response=await fetch('/api/alerts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:tgApp.initData,action})});
+ const data=await response.json();if(!response.ok)throw new Error(data.error||'Alert settings request failed.');
+ return data;
+}
+function renderAlertSettings(enabled){
+ alertsEnabled=enabled;
+ alertsStateEl.textContent=enabled?'ALERTS ON':'ALERTS OFF';
+ alertsStateEl.style.color=enabled?'var(--green)':'var(--muted)';
+ alertsDescriptionEl.textContent=enabled?'You will receive new confirmed BUY/SELL alerts for supported pairs.':'Automatic BUY/SELL alerts are currently disabled for this Telegram chat.';
+ alertsToggleEl.textContent=enabled?'Disable automatic alerts':'Enable automatic alerts';
+ alertsToggleEl.classList.toggle('off',enabled);
+ alertsToggleEl.disabled=false;
+}
+async function loadAlertSettings(){
+ if(!tgApp?.initData){alertsStateEl.textContent='OPEN IN TELEGRAM';alertsDescriptionEl.textContent='Open this page using the Open CryptoSignal AI button in your bot chat.';alertsToggleEl.textContent='Telegram app required';alertsToggleEl.disabled=true;alertsFeedbackEl.textContent='For security, alert controls only work with verified Telegram Mini App data.';return;}
+ try{const data=await requestAlertAction('status');renderAlertSettings(data.enabled);alertsFeedbackEl.textContent='Connected securely to your Telegram account.';}
+ catch(error){alertsStateEl.textContent='UNAVAILABLE';alertsDescriptionEl.textContent='Could not verify your Telegram alert status.';alertsToggleEl.textContent='Try again';alertsToggleEl.disabled=false;alertsFeedbackEl.textContent=error.message;}
+}
+alertsToggleEl.addEventListener('click',async()=>{
+ alertsToggleEl.disabled=true;alertsToggleEl.textContent='Updating…';
+ try{const data=await requestAlertAction(alertsEnabled?'off':'on');renderAlertSettings(data.enabled);alertsFeedbackEl.textContent=data.enabled?'Automatic alerts are now enabled.':'Automatic alerts are now disabled.';}
+ catch(error){alertsToggleEl.disabled=false;alertsToggleEl.textContent=alertsEnabled?'Disable automatic alerts':'Enable automatic alerts';alertsFeedbackEl.textContent=error.message;}
+});
+
 const statusEl=document.getElementById('backendStatus');
 async function checkBackend(){try{const r=await fetch('/health',{cache:'no-store'});const d=await r.json();if(!r.ok||d.ok!==true)throw new Error('Health check failed');statusEl.className='status online';statusEl.textContent='● BACKEND ONLINE';}catch(e){statusEl.className='status offline';statusEl.textContent='● CONNECTION ISSUE';}}
 const buttons=[...document.querySelectorAll('[data-page]')];
@@ -87,7 +122,7 @@ async function loadPerformance(){
  }catch(error){box.textContent='Could not load performance: '+error.message;}
 }
 pairSelect.addEventListener('change',loadMarket);
-checkBackend();loadMarket();loadMarkets();loadPerformance();
+checkBackend();loadMarket();loadMarkets();loadPerformance();loadAlertSettings();
 setInterval(checkBackend,30000);setInterval(loadMarket,30000);setInterval(loadMarkets,30000);setInterval(loadPerformance,60000);
 </script>
 </body>
