@@ -811,7 +811,7 @@ const server = createServer(async (req, res) => {
       let rows = signalHistory;
       let persistent = false;
       if (DB_ENABLED) {
-        rows = await supabaseRequest("signal_history?select=pair,side,entry,stop,tp1,outcome,created_at,closed_at&order=created_at.desc&limit=500");
+        rows = await supabaseRequest("signal_history?select=pair,side,entry,stop,tp1,tp2,tp1_at,tp2_at,outcome,created_at,closed_at&order=created_at.desc&limit=500");
         persistent = true;
       }
       const wins = rows.filter(x => x.outcome === "WIN").length;
@@ -819,6 +819,9 @@ const server = createServer(async (req, res) => {
       const open = rows.filter(x => x.outcome === "OPEN").length;
       const ambiguous = rows.filter(x => x.outcome === "AMBIGUOUS").length;
       const decided = wins + losses;
+      const tp1Reached = rows.filter(row => Boolean(row.tp1_at)).length;
+      const tp2Reached = rows.filter(row => Boolean(row.tp2_at)).length;
+      const tp2Rate = tp1Reached ? Number((tp2Reached / tp1Reached * 100).toFixed(1)) : null;
       const directionStats = ["BUY", "SELL"].map(side => {
         const sideRows = rows.filter(row => row.side === side);
         const sideWins = sideRows.filter(row => row.outcome === "WIN").length;
@@ -856,6 +859,7 @@ const server = createServer(async (req, res) => {
       const bestPair = pairStats.find(item => item.resolved > 0) || null;
       return res.end(JSON.stringify({
         tracked: rows.length, wins, losses, open, ambiguous,
+        tp1Reached, tp2Reached, tp2Rate,
         winRate: decided ? Number((wins / decided * 100).toFixed(1)) : null,
         directionStats, averageDurationMs, durationSamples: durations.length,
         currentStreak, bestPair, pairStats, persistent, records: rows.slice(0, 25)
