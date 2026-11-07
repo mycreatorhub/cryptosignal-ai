@@ -10,7 +10,7 @@
 :root{color-scheme:dark;--bg:#080d18;--panel:#101827;--panel2:#141f31;--line:#233148;--muted:#8fa0b8;--text:#f3f6fc;--green:#32d69a;--red:#ff647c;--blue:#77a7ff;--amber:#f6c66b}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -15%,#172b48 0,transparent 45%),var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
 .wrap{max-width:760px;margin:auto;padding:20px 16px 100px}.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}.brand{display:flex;align-items:center;gap:11px}.logo{width:42px;height:42px;border-radius:14px;background:linear-gradient(145deg,#1d936e,#1c4f85);display:grid;place-items:center;font-size:21px;box-shadow:0 8px 25px #0006}.brand strong{display:block;font-size:15px;letter-spacing:.08em}.brand small{color:var(--muted);font-size:11px;letter-spacing:.12em}.status{border:1px solid #275844;color:var(--green);background:#10251f;border-radius:30px;padding:6px 10px;font-size:10px;font-weight:800;letter-spacing:.08em}.status.checking{border-color:#57472b;color:var(--amber);background:#282113}.status.online{border-color:#275844;color:var(--green);background:#10251f}.status.offline{border-color:#633044;color:var(--red);background:#2b1420}.eyebrow{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.13em;font-weight:700}.heading{display:flex;align-items:end;justify-content:space-between;margin:8px 0 14px}.heading h1{font-size:25px;margin:3px 0 0;letter-spacing:-.04em}.select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:11px;padding:9px 11px;font:inherit;font-weight:700}
-.card{background:linear-gradient(145deg,#121d2e,#0f1725);border:1px solid var(--line);border-radius:19px;padding:16px;margin-bottom:13px;box-shadow:0 12px 35px #0002}.price-row{display:flex;justify-content:space-between;align-items:start;gap:12px}.price{font-size:29px;font-weight:800;letter-spacing:-.04em;margin:5px 0}.sub{color:var(--muted);font-size:12px}.pill{border-radius:9px;padding:6px 9px;background:#19263a;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.08em}.chart{height:118px;margin-top:16px;border-radius:12px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 28px,#26364b66 29px),linear-gradient(180deg,#14243866,#0c1522);position:relative;overflow:hidden;display:grid;place-items:center;color:#71839b;font-size:11px}.chart svg{position:absolute;inset:0;width:100%;height:100%}.chart-label{position:relative;background:#0d1724cc;padding:6px 9px;border-radius:8px}
+.card{background:linear-gradient(145deg,#121d2e,#0f1725);border:1px solid var(--line);border-radius:19px;padding:16px;margin-bottom:13px;box-shadow:0 12px 35px #0002}.price-row{display:flex;justify-content:space-between;align-items:start;gap:12px}.price{font-size:29px;font-weight:800;letter-spacing:-.04em;margin:5px 0}.sub{color:var(--muted);font-size:12px}.pill{border-radius:9px;padding:6px 9px;background:#19263a;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.08em}.chart-toolbar{display:flex;justify-content:space-between;align-items:center;margin:16px 0 8px}.chart-toolbar b{display:block;font-size:11px;letter-spacing:.1em}.chart-toolbar small{display:block;color:var(--muted);font-size:10px;margin-top:3px}.chart-tabs{display:flex;gap:5px}.chart-tab{border:1px solid var(--line);background:#101a2a;color:var(--muted);border-radius:8px;padding:7px 11px;font:inherit;font-size:11px;font-weight:800}.chart-tab.active{background:#173b30;border-color:#286b51;color:var(--green)}.chart-frame{height:245px;position:relative;background:repeating-linear-gradient(to bottom,transparent 0,transparent 48px,#26364b55 49px),#0b1421;border:1px solid #1d2b40;border-radius:12px;overflow:hidden}.chart-frame canvas{width:100%;height:100%;display:block}.chart-message{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:11px;pointer-events:none}.chart-legend{display:flex;gap:13px;align-items:center;color:var(--muted);font-size:10px;margin-top:9px}.chart-legend span{display:flex;align-items:center;gap:5px}.chart-legend span:last-child{margin-left:auto}.chart-legend i{width:8px;height:8px;border-radius:2px;display:inline-block}.chart-legend i.up{background:var(--green)}.chart-legend i.down{background:var(--red)}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.metric{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:13px}.metric b{display:block;font-size:17px;margin-top:7px}.metric small{color:var(--muted);font-size:11px}
 .signal{display:flex;justify-content:space-between;align-items:center}.wait{font-size:22px;font-weight:900;letter-spacing:.06em;color:var(--amber)}.signal p{color:var(--muted);font-size:12px;margin:4px 0 0}.signal-icon{width:42px;height:42px;border-radius:13px;background:#342b19;color:var(--amber);display:grid;place-items:center;font-size:20px}
 .levels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.level{padding:10px;background:#0b1421;border:1px solid #1e2c40;border-radius:11px}.level small{display:block;color:var(--muted);font-size:10px}.level b{display:block;margin-top:4px;font-size:13px}
@@ -18,7 +18,7 @@
 .notice{padding:12px 13px;border:1px solid #57472b;background:#282113;border-radius:13px;color:#d8c18d;font-size:11px;margin-top:13px}
 .bottom{position:fixed;z-index:5;bottom:0;left:0;right:0;padding:9px 12px calc(9px + env(safe-area-inset-bottom));background:#0a111eeF;backdrop-filter:blur(18px);border-top:1px solid #26344a}.nav{max-width:620px;margin:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.nav button{border:0;background:transparent;color:#8192aa;border-radius:12px;padding:8px 3px;font:inherit;font-size:10px;display:grid;gap:4px;justify-items:center}.nav button span{font-size:18px}.nav button.active{color:var(--green);background:#173126}
 .page{display:none}.page.active{display:block}.empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:12px}.empty-state{display:grid;gap:8px}.empty-state strong{color:var(--text);font-size:14px}.empty-state span{line-height:1.6}.action{width:100%;border:1px solid #2a7458;background:#123b2c;color:#b6f7d8;border-radius:12px;padding:12px;font:inherit;font-weight:800;margin-top:12px}.action:disabled{opacity:.5}.action.off{border-color:#744052;background:#321b27;color:#ffc0cc}.alert-feedback{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5}
-@media(min-width:600px){.wrap{padding-top:28px}.grid{grid-template-columns:repeat(4,minmax(0,1fr))}.chart{height:155px}}
+@media(min-width:600px){.wrap{padding-top:28px}.grid{grid-template-columns:repeat(4,minmax(0,1fr))}.chart-frame{height:285px}}
 </style>
 </head>
 <body>
@@ -26,7 +26,7 @@
 <header class="top"><div class="brand"><div class="logo">◈</div><div><strong>CRYPTOSIGNAL AI</strong><small>SMART MONEY • MARKET INTELLIGENCE</small></div></div><div class="status checking" id="backendStatus">● CHECKING</div></header>
 <section class="page active" id="dashboard">
 <div class="heading"><div><div class="eyebrow">Market overview</div><h1>Dashboard</h1></div><select class="select" id="pair"><option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option><option>BNBUSDT</option><option>XRPUSDT</option></select></div>
-<div class="card"><div class="price-row"><div><div class="eyebrow" id="pairLabel">BTC / USDT</div><div class="price" id="livePrice">Loading…</div><div class="sub" id="priceUpdated">Connecting to Coinbase…</div></div><div class="pill">5M ENTRY · 15M CONTEXT</div></div><div class="chart"><svg viewBox="0 0 600 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0 105 L30 96 L58 110 L90 82 L120 91 L150 62 L178 76 L210 48 L240 59 L270 42 L300 69 L330 54 L360 75 L390 51 L420 60 L450 34 L480 47 L510 28 L540 43 L570 18 L600 30" fill="none" stroke="#39c99a" stroke-width="2.5" opacity=".75"/><path d="M0 105 L30 96 L58 110 L90 82 L120 91 L150 62 L178 76 L210 48 L240 59 L270 42 L300 69 L330 54 L360 75 L390 51 L420 60 L450 34 L480 47 L510 28 L540 43 L570 18 L600 30 L600 150 L0 150Z" fill="url(#g)" opacity=".15"/><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#39c99a"/><stop offset="1" stop-color="#39c99a" stop-opacity="0"/></linearGradient></defs></svg><span class="chart-label">Chart connects in next stage</span></div></div>
+<div class="card"><div class="price-row"><div><div class="eyebrow" id="pairLabel">BTC / USDT</div><div class="price" id="livePrice">Loading…</div><div class="sub" id="priceUpdated">Connecting to Coinbase…</div></div><div class="pill">5M ENTRY · 15M CONTEXT</div></div><div class="chart-toolbar"><div><b>LIVE PRICE CHART</b><small id="chartMeta">Coinbase · 5-minute candles</small></div><div class="chart-tabs"><button class="chart-tab active" data-interval="5m">5M</button><button class="chart-tab" data-interval="15m">15M</button></div></div><div class="chart-frame"><canvas id="priceChart" aria-label="Candlestick price chart"></canvas><div id="chartMessage" class="chart-message">Loading candle data…</div></div><div class="chart-legend"><span><i class="up"></i> Bullish</span><span><i class="down"></i> Bearish</span><span id="chartUpdated">Waiting for data</span></div></div>
 <div class="grid"><div class="metric"><small>15m market bias</small><b id="biasValue">—</b></div><div class="metric"><small>5m setup</small><b id="setupValue">WAIT</b></div><div class="metric"><small>Signal strength</small><b id="strengthValue">— / 100</b></div><div class="metric"><small>Signal state</small><b id="stateValue">—</b></div></div>
 <h2 class="section-title">SMC signal</h2><div class="card"><div class="signal"><div><div class="eyebrow">Current setup</div><div class="wait" id="signalState">WAIT</div><p id="signalStage">Loading live SMC analysis…</p></div><div class="signal-icon">⌁</div></div><div class="levels"><div class="level"><small>ENTRY</small><b id="entryValue">—</b></div><div class="level"><small>STOP LOSS</small><b id="stopValue">—</b></div><div class="level"><small>TP1 / TP2</small><b id="targetValue">—</b></div></div></div>
 <div class="notice" id="dataNotice">Connecting to live market data. Experimental analysis only; not financial advice.</div>
@@ -77,6 +77,50 @@ async function checkBackend(){try{const r=await fetch('/health',{cache:'no-store
 const buttons=[...document.querySelectorAll('[data-page]')];
 buttons.forEach(button=>button.addEventListener('click',()=>{buttons.forEach(x=>x.classList.toggle('active',x===button));document.querySelectorAll('.page').forEach(page=>page.classList.toggle('active',page.id===button.dataset.page));if(button.dataset.page==='performance')loadPerformance();if(button.dataset.page==='markets')loadMarkets();}));
 const pairSelect=document.getElementById('pair');
+
+let chartInterval='5m';
+let chartCandles=[];
+let chartLivePrice=null;
+const chartCanvas=document.getElementById('priceChart');
+const chartMessage=document.getElementById('chartMessage');
+function drawPriceChart(){
+ if(!chartCanvas)return;
+ const rect=chartCanvas.getBoundingClientRect();if(!rect.width||!rect.height)return;
+ const dpr=Math.min(window.devicePixelRatio||1,2);
+ chartCanvas.width=Math.round(rect.width*dpr);chartCanvas.height=Math.round(rect.height*dpr);
+ const ctx=chartCanvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+ const w=rect.width,hh=rect.height;ctx.clearRect(0,0,w,hh);
+ if(!chartCandles.length){chartMessage.style.display='grid';return;}
+ chartMessage.style.display='none';
+ const left=8,right=62,top=12,bottom=24,plotW=w-left-right,plotH=hh-top-bottom;
+ const lows=chartCandles.map(c=>c.l),highs=chartCandles.map(c=>c.h);
+ let min=Math.min(...lows),max=Math.max(...highs);
+ if(chartLivePrice&&Number.isFinite(chartLivePrice)){min=Math.min(min,chartLivePrice);max=Math.max(max,chartLivePrice);}
+ const pad=(max-min)*.08||Math.max(max*.001,.01);min-=pad;max+=pad;
+ const y=v=>top+(max-v)/(max-min)*plotH;
+ ctx.font='10px system-ui';ctx.fillStyle='#8292aa';ctx.textAlign='left';ctx.strokeStyle='#26364b';ctx.lineWidth=1;
+ for(let i=0;i<=4;i++){const yy=top+plotH*i/4;ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(w-right,yy);ctx.stroke();const val=max-(max-min)*i/4;ctx.fillText(val.toLocaleString('en-US',{maximumFractionDigits:2}),w-right+6,yy+3);}
+ const step=plotW/chartCandles.length,candleW=Math.max(2,Math.min(9,step*.62));
+ chartCandles.forEach((c,i)=>{const x=left+i*step+step/2,up=c.c>=c.o,color=up?'#32d69a':'#ff647c';ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y(c.h));ctx.lineTo(x,y(c.l));ctx.stroke();const yo=y(c.o),yc=y(c.c),body=Math.max(1,Math.abs(yc-yo));ctx.fillRect(x-candleW/2,Math.min(yo,yc),candleW,body);});
+ if(chartLivePrice&&Number.isFinite(chartLivePrice)){const yy=y(chartLivePrice);ctx.setLineDash([4,3]);ctx.strokeStyle='#77a7ff';ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(w-right,yy);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#77a7ff';ctx.fillRect(w-right+2,yy-8,right-4,16);ctx.fillStyle='#07101d';ctx.fillText(chartLivePrice.toLocaleString('en-US',{maximumFractionDigits:2}),w-right+5,yy+3);}
+ ctx.textAlign='left';ctx.fillStyle='#8292aa';const first=new Date(chartCandles[0].t),last=new Date(chartCandles.at(-1).t);ctx.fillText(first.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),left,hh-7);ctx.textAlign='right';ctx.fillText(last.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),w-right,hh-7);
+}
+async function loadChart(){
+ const pair=pairSelect.value;
+ chartMessage.style.display='grid';chartMessage.textContent='Loading '+chartInterval+' candles…';
+ setText('chartMeta','Coinbase · '+chartInterval+' candles · '+pair);
+ try{
+  const response=await fetch('/api/candles?pair='+encodeURIComponent(pair)+'&interval='+encodeURIComponent(chartInterval),{cache:'no-store'});
+  const data=await response.json();if(!response.ok)throw new Error(data.error||'Candle API unavailable');
+  chartCandles=data.candles||[];chartLivePrice=Number.isFinite(Number(data.price))?Number(data.price):null;
+  if(!chartCandles.length)throw new Error('No finalized candles returned.');
+  setText('chartUpdated','Updated '+new Date(data.updatedAt).toLocaleTimeString());
+  drawPriceChart();
+ }catch(error){chartMessage.style.display='grid';chartMessage.textContent='Chart unavailable: '+error.message;setText('chartUpdated','Data unavailable');}
+}
+document.querySelectorAll('[data-interval]').forEach(btn=>btn.addEventListener('click',()=>{chartInterval=btn.dataset.interval;document.querySelectorAll('[data-interval]').forEach(x=>x.classList.toggle('active',x===btn));loadChart();}));
+window.addEventListener('resize',drawPriceChart);
+
 const money=n=>n!==null&&n!==undefined&&n!==''&&Number.isFinite(Number(n))?'$'+Number(n).toLocaleString('en-US',{maximumFractionDigits:8}):'—';
 const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
 async function loadMarket(){
@@ -121,9 +165,9 @@ async function loadPerformance(){
    (data.records.length?data.records.map(x=>'<div class="pair-row"><div><b>'+x.pair+' · '+x.side+'</b><small>'+new Date(x.created_at||Date.now()).toLocaleString()+'</small></div><div class="right"><b>'+x.outcome+'</b><small>Entry '+money(x.entry)+'</small></div></div>').join('') :'<div class="empty empty-state"><strong>No signals tracked yet</strong><span>There are no confirmed BUY/SELL setups in the history. WAIT conditions are intentionally excluded, so this is not a performance or database error. Your statistics will appear here after a genuine signal is recorded.</span></div>');
  }catch(error){box.textContent='Could not load performance: '+error.message;}
 }
-pairSelect.addEventListener('change',loadMarket);
-checkBackend();loadMarket();loadMarkets();loadPerformance();loadAlertSettings();
-setInterval(checkBackend,30000);setInterval(loadMarket,30000);setInterval(loadMarkets,30000);setInterval(loadPerformance,60000);
+pairSelect.addEventListener('change',()=>{loadMarket();loadChart();});
+checkBackend();loadMarket();loadChart();loadMarkets();loadPerformance();loadAlertSettings();
+setInterval(checkBackend,30000);setInterval(loadMarket,30000);setInterval(loadChart,30000);setInterval(loadMarkets,30000);setInterval(loadPerformance,60000);
 </script>
 </body>
 </html>
