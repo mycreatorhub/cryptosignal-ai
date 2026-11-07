@@ -97,6 +97,7 @@ function drawPriceChart(){
  const lows=chartCandles.map(c=>c.l),highs=chartCandles.map(c=>c.h);
  let min=Math.min(...lows),max=Math.max(...highs);
  if(chartLivePrice&&Number.isFinite(chartLivePrice)){min=Math.min(min,chartLivePrice);max=Math.max(max,chartLivePrice);}
+ if(chartLevels){const tradeLevels=['entry','stop','tp1','tp2'].map(key=>chartLevels[key]).filter(Number.isFinite);if(tradeLevels.length){min=Math.min(min,...tradeLevels);max=Math.max(max,...tradeLevels);}}
  const pad=(max-min)*.08||Math.max(max*.001,.01);min-=pad;max+=pad;
  const y=v=>top+(max-v)/(max-min)*plotH;
  ctx.font='10px system-ui';ctx.fillStyle='#8292aa';ctx.textAlign='left';ctx.strokeStyle='#26364b';ctx.lineWidth=1;
