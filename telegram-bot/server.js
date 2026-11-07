@@ -258,7 +258,7 @@ async function handleUpdate(update) {
 
   let reply;
   if (text === "/alerts" || text.startsWith("/alerts ")) {
-    const action = (text.split(/\\s+/)[1] || "").toLowerCase();
+    const action = (text.split(/\s+/)[1] || "").toLowerCase();
     if (action === "on") {
       alertChats.add(chatId);
       reply = `🔔 Automatic alerts enabled. I'll scan the supported Coinbase pairs about every ${Math.round(ALERT_SCAN_INTERVAL_MS / 60000)} minute(s) and send only new BUY/SELL setups. Keep in mind that alerts may pause if the hosting service sleeps or restarts.\n\nSend /alerts off to stop.`;
@@ -266,7 +266,7 @@ async function handleUpdate(update) {
       alertChats.delete(chatId);
       reply = "🔕 Automatic alerts disabled for this chat.";
     } else {
-      reply = "Usage:\\n/alerts on — enable automatic BUY/SELL alerts\\n/alerts off — disable alerts";
+      reply = "Usage:\n/alerts on — enable automatic BUY/SELL alerts\n/alerts off — disable alerts";
     }
   } else if (text === "/start") {
     reply = "◈ CryptoSignal AI Bot\n\nWelcome! I can check public market prices and SMC scalp setups.\n\nCommands:\n/price BTCUSDT\n/signal BTCUSDT\n/help";
