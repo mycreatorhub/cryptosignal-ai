@@ -682,6 +682,31 @@ const server = createServer(async (req, res) => {
     }
   }
 
+  if (req.method === "GET" && requestPath === "/api/candles") {
+    try {
+      const params = new URL(req.url, "http://localhost").searchParams;
+      const pair = (params.get("pair") || "BTCUSDT").toUpperCase();
+      const interval = (params.get("interval") || "5m").toLowerCase();
+      if (!Object.prototype.hasOwnProperty.call(COINS, pair)) {
+        res.writeHead(400, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+        return res.end(JSON.stringify({ error: "Unsupported pair." }));
+      }
+      if (!["5m", "15m"].includes(interval)) {
+        res.writeHead(400, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+        return res.end(JSON.stringify({ error: "Unsupported interval. Use 5m or 15m." }));
+      }
+      const [candles, price] = await Promise.all([getCandles(pair, interval), coinbasePrice(pair)]);
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+      return res.end(JSON.stringify({
+        pair, interval, price, candles: candles.slice(-90),
+        updatedAt: new Date().toISOString(), dataSource: "Coinbase Exchange"
+      }));
+    } catch (error) {
+      res.writeHead(502, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+      return res.end(JSON.stringify({ error: error.message || "Candle data unavailable." }));
+    }
+  }
+
   if (req.method === "GET" && requestPath === "/api/market") {
     try {
       const params = new URL(req.url, "http://localhost").searchParams;
