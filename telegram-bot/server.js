@@ -252,7 +252,7 @@ async function setBotCommands() {
     { command: "alerts", description: "Turn automatic alerts on or off" },
     { command: "pairs", description: "Show supported trading pairs" },
     { command: "status", description: "Check bot and alert status" },
-    { command: "performance", description: "View tracked signal outcomes" },
+    { command: "performance", description: "View tracked signal outcomes" },\n    { command: "dbcheck", description: "Test Supabase database read and write" },
     { command: "help", description: "Show available commands" }
   ];
   const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setMyCommands`, {
@@ -365,6 +365,57 @@ async function updateSignalOutcomes(pair, candles) {
   }
 }
 
+async function checkDatabase() {
+  if (!DB_ENABLED) {
+    return "⚠️ Supabase is not configured. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Render.";
+  }
+
+  const key = `DBCHECK-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  let insertedId = null;
+  let insertPassed = false;
+  let readPassed = false;
+  let cleanupPassed = false;
+
+  try {
+    const inserted = await supabaseRequest("signal_history", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        signal_key: key, pair: "DBTEST", side: "BUY",
+        entry: 1, stop: 0.9, tp1: 1.1, outcome: "OPEN"
+      })
+    });
+    insertedId = inserted?.[0]?.id || null;
+    insertPassed = Boolean(insertedId);
+    if (!insertPassed) throw new Error("Insert returned no record ID.");
+
+    const found = await supabaseRequest(
+      `signal_history?signal_key=eq.${encodeURIComponent(key)}&select=id,pair&limit=1`
+    );
+    readPassed = Array.isArray(found) && found.length === 1 &&
+      found[0].id === insertedId && found[0].pair === "DBTEST";
+    if (!readPassed) throw new Error("Inserted test row could not be read back.");
+  } catch (error) {
+    console.error("Supabase database check failed:", error.message);
+  } finally {
+    if (insertedId) {
+      try {
+        await supabaseRequest(`signal_history?id=eq.${encodeURIComponent(insertedId)}`, {
+          method: "DELETE"
+        });
+        cleanupPassed = true;
+      } catch (error) {
+        console.error("Supabase test-row cleanup failed:", error.message);
+      }
+    }
+  }
+
+  if (insertPassed && readPassed && cleanupPassed) {
+    return "✅ SUPABASE DATABASE CHECK PASSED\\n\\nInsert: OK\\nRead-back: OK\\nCleanup: OK\\n\\nA temporary DBTEST row was created, verified, and deleted. No trading signal or performance count was changed.";
+  }
+  return `⚠️ SUPABASE DATABASE CHECK INCOMPLETE\\n\\nInsert: ${insertPassed ? "OK" : "FAILED"}\\nRead-back: ${readPassed ? "OK" : "FAILED"}\\nCleanup: ${insertedId ? (cleanupPassed ? "OK" : "FAILED — check Supabase for a leftover DBTEST row") : "Not needed"}\\n\\nCheck the Render logs for the Supabase API error. No real trading signal was created.`;
+}
+
 async function formatPerformance() {
   let rows = signalHistory;
   let persistent = false;
@@ -465,7 +516,7 @@ async function handleUpdate(update) {
     reply = "📊 SUPPORTED COINBASE PAIRS\n\n" + Object.keys(COINS).join("\n") + "\n\nUse /price BTCUSDT or /signal BTCUSDT to get started.";
   } else if (text === "/status") {
     reply = "🟢 CRYPTOSIGNAL AI STATUS\n\nBot process: Running\nAutomatic alerts for this chat: " + (alertChats.has(chatId) ? "ON 🔔" : "OFF 🔕") + "\nScan interval: " + Math.round(ALERT_SCAN_INTERVAL_MS / 60000) + " minute(s)\nSupported pairs: " + Object.keys(COINS).length + "\n\nNote: status reflects this running process; hosting sleep/restarts can pause alerts.";
-  } else if (text === "/performance") {
+  } else if (text === "/dbcheck") {\n    reply = await checkDatabase();\n  } else if (text === "/performance") {
     reply = await formatPerformance();
   } else if (text === "/help") {
     reply = "Commands:\n/start — open dashboard\n/price BTCUSDT — latest Coinbase spot price\n/signal BTCUSDT — 5m SMC setup with 15m context\n/alerts on — enable automatic BUY/SELL alerts\n/alerts off — disable alerts\n/pairs — show supported pairs\n/status — check bot and alert status\n/performance — view tracked signal outcomes\n/help — show commands\n\nSignals are experimental and are not financial advice.";
