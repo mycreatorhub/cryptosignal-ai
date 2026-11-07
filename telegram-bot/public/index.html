@@ -18,7 +18,6 @@
 .notice{padding:12px 13px;border:1px solid #57472b;background:#282113;border-radius:13px;color:#d8c18d;font-size:11px;margin-top:13px}
 .bottom{position:fixed;z-index:5;bottom:0;left:0;right:0;padding:9px 12px calc(9px + env(safe-area-inset-bottom));background:#0a111eeF;backdrop-filter:blur(18px);border-top:1px solid #26344a}.nav{max-width:620px;margin:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.nav button{border:0;background:transparent;color:#8192aa;border-radius:12px;padding:8px 3px;font:inherit;font-size:10px;display:grid;gap:4px;justify-items:center}.nav button span{font-size:18px}.nav button.active{color:var(--green);background:#173126}
 .page{display:none}.page.active{display:block}.empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:12px}.empty-state{display:grid;gap:8px}.empty-state strong{color:var(--text);font-size:14px}.empty-state span{line-height:1.6}.action{width:100%;border:1px solid #2a7458;background:#123b2c;color:#b6f7d8;border-radius:12px;padding:12px;font:inherit;font-weight:800;margin-top:12px}.action:disabled{opacity:.5}.action.off{border-color:#744052;background:#321b27;color:#ffc0cc}.alert-feedback{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5}
-.risk-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.risk-field label{display:block;color:var(--muted);font-size:11px;margin-bottom:6px}.risk-field input,.risk-field select{width:100%;min-width:0;background:#0b1421;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px;font:inherit}.risk-results{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.risk-result{background:#0b1421;border:1px solid #1e2c40;border-radius:11px;padding:11px}.risk-result small{display:block;color:var(--muted);font-size:10px}.risk-result b{display:block;font-size:15px;margin-top:5px;overflow-wrap:anywhere}.risk-help{font-size:11px;color:var(--muted);line-height:1.6}.risk-error{color:var(--red);font-size:11px;margin-top:9px}
 @media(min-width:600px){.wrap{padding-top:28px}.grid{grid-template-columns:repeat(4,minmax(0,1fr))}.chart-frame{height:285px}}
 </style>
 </head>
@@ -34,38 +33,10 @@
 <h2 class="section-title">Watchlist</h2><div class="card" id="watchlist"><div id="watchlistRows"><div class="empty">Loading Coinbase prices…</div></div></div>
 </section>
 <section class="page" id="markets"><div class="eyebrow">Explore assets</div><h1>Markets</h1><div class="card" id="marketsRows"><div class="empty">Loading live Coinbase markets…</div></div></section>
-<section class="page" id="risk">
-<div class="eyebrow">Protect your capital</div><h1>Risk calculator</h1>
-<div class="card"><div class="pair-row"><b>Position sizing</b><span class="pill">SPOT ESTIMATE</span></div>
-<p class="risk-help">Set the amount in your account you want to calculate against, then choose how much you are willing to lose if the stop is hit. This is a calculator only; it does not place orders.</p>
-<div class="risk-fields">
-<div class="risk-field"><label for="riskBalance">Account balance (USD)</label><input id="riskBalance" type="number" min="0.01" step="any" value="1000" inputmode="decimal"></div>
-<div class="risk-field"><label for="riskPercent">Risk per trade (%)</label><input id="riskPercent" type="number" min="0.01" max="100" step="any" value="1" inputmode="decimal"></div>
-<div class="risk-field"><label for="riskSide">Direction</label><select id="riskSide"><option value="BUY">BUY / LONG</option><option value="SELL">SELL / SHORT</option></select></div>
-<div class="risk-field"><label for="riskEntry">Entry price (USD)</label><input id="riskEntry" type="number" min="0" step="any" placeholder="Enter entry" inputmode="decimal"></div>
-<div class="risk-field"><label for="riskStop">Stop loss (USD)</label><input id="riskStop" type="number" min="0" step="any" placeholder="Enter stop" inputmode="decimal"></div>
-<div class="risk-field"><label for="riskTp1">Take profit 1 (USD)</label><input id="riskTp1" type="number" min="0" step="any" placeholder="Optional" inputmode="decimal"></div>
-<div class="risk-field"><label for="riskTp2">Take profit 2 (USD)</label><input id="riskTp2" type="number" min="0" step="any" placeholder="Optional" inputmode="decimal"></div>
-</div>
-<button class="action" id="useSignalLevels" type="button">Use current confirmed signal levels</button>
-<div class="alert-feedback" id="riskSignalStatus">No confirmed signal levels loaded yet.</div>
-<div class="risk-error" id="riskError" role="status"></div>
-</div>
-<h2 class="section-title">Your calculated position</h2>
-<div class="card"><div class="risk-results">
-<div class="risk-result"><small>Maximum planned loss</small><b id="riskAmount">—</b></div>
-<div class="risk-result"><small>Position value</small><b id="riskNotional">—</b></div>
-<div class="risk-result"><small>Estimated quantity</small><b id="riskQuantity">—</b></div>
-<div class="risk-result"><small>Stop distance</small><b id="riskDistance">—</b></div>
-<div class="risk-result"><small>TP1 reward / R:R</small><b id="riskReward1">—</b></div>
-<div class="risk-result"><small>TP2 reward / R:R</small><b id="riskReward2">—</b></div>
-</div></div>
-<div class="notice">Assumes a linear spot-style position and excludes fees, slippage, funding, leverage, liquidation and minimum order sizes. Actual losses can exceed the estimate during gaps or execution problems. Never risk money you cannot afford to lose.</div>
-</section>
 <section class="page" id="performance"><div class="eyebrow">Trading statistics</div><h1>Performance</h1><div class="grid"><div class="metric"><small>Tracked signals</small><b id="trackedValue">—</b></div><div class="metric"><small>Win rate</small><b id="winRateValue">—</b></div><div class="metric"><small>TP1 reached</small><b id="winsValue">—</b></div><div class="metric"><small>Stop losses</small><b id="lossesValue">—</b></div></div><div class="card" style="margin-top:13px"><div id="performanceRows" class="empty">Loading Supabase performance history…</div></div></section>
 <section class="page" id="settings"><div class="eyebrow">Personalize your experience</div><h1>Settings</h1><div class="card"><div class="pair-row"><b>Automatic alerts</b><span class="pill" id="alertsState">CHECKING</span></div><p class="sub" id="alertsDescription">Checking your Telegram alert subscription…</p><button class="action" id="alertsToggle" type="button" disabled>Loading alert settings…</button><div class="alert-feedback" id="alertsFeedback">Alert status is linked to the Telegram account that opened this Mini App.</div></div><div class="notice">Alerts may pause if the free hosting service sleeps or restarts. Experimental market analysis only; not financial advice.</div></section>
 </main>
-<nav class="bottom"><div class="nav" style="grid-template-columns:repeat(5,1fr)"><button class="active" data-page="dashboard"><span>⌂</span>Home</button><button data-page="markets"><span>▥</span>Markets</button><button data-page="risk"><span>◎</span>Risk</button><button data-page="performance"><span>⌁</span>Stats</button><button data-page="settings"><span>⚙</span>Settings</button></div></nav>
+<nav class="bottom"><div class="nav"><button class="active" data-page="dashboard"><span>⌂</span>Home</button><button data-page="markets"><span>▥</span>Markets</button><button data-page="performance"><span>⌁</span>Performance</button><button data-page="settings"><span>⚙</span>Settings</button></div></nav>
 <script>
 
 const tgApp=window.Telegram?.WebApp;
@@ -190,195 +161,7 @@ chartCanvas.addEventListener('pointerleave',()=>{if(!chartDrag)chartCrosshair.st
 document.querySelectorAll('[data-interval]').forEach(btn=>btn.addEventListener('click',()=>{chartInterval=btn.dataset.interval;chartViewOffset=0;chartViewCount=90;document.querySelectorAll('[data-interval]').forEach(x=>x.classList.toggle('active',x===btn));loadChart();}));
 window.addEventListener('resize',drawPriceChart);
 
-const money=n=>n!==null&&n!==undefined&&n!==''&&Number.isFinite(Number(n))?'
-const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
-calculateRisk();
-async function loadMarket(){
- const pair=pairSelect.value;
- setText('pairLabel',pair.replace('USDT',' / USDT'));
- try{
-  const response=await fetch('/api/market?pair='+encodeURIComponent(pair),{cache:'no-store'});
-  const data=await response.json();if(!response.ok)throw new Error(data.error||'Market API unavailable');
-  const a=data.analysis||{};
-  const activeSignal=a.state==='BUY'||a.state==='SELL';
-  latestConfirmedSignal=activeSignal&&[a.entry,a.stop,a.tp1,a.tp2].every(v=>v!==null&&v!==undefined&&Number.isFinite(Number(v))&&Number(v)>0)?{pair,state:a.state,entry:Number(a.entry),stop:Number(a.stop),tp1:Number(a.tp1),tp2:Number(a.tp2)}:null;
-  const useSignalButton=document.getElementById('useSignalLevels');
-  if(useSignalButton)useSignalButton.disabled=!latestConfirmedSignal;
-  const riskSignalStatus=document.getElementById('riskSignalStatus');
-  if(riskSignalStatus)riskSignalStatus.textContent=latestConfirmedSignal?'Latest confirmed setup: '+latestConfirmedSignal.pair+' '+latestConfirmedSignal.state+'. Tap the button to load its levels.':'No confirmed BUY/SELL signal for this pair. WAIT references cannot be used as entries.';
-  const validLevel=value=>value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))&&Number(value)>0?Number(value):null;
-  chartLevels={
-   entry:activeSignal?validLevel(a.entry):null,
-   stop:activeSignal?validLevel(a.stop):null,
-   tp1:activeSignal?validLevel(a.tp1):null,
-   tp2:activeSignal?validLevel(a.tp2):null,
-   liquidity:validLevel(a.liquidityLevel),mss:validLevel(a.mssLevel),
-   fvgLow:validLevel(a.fvgLow),fvgHigh:validLevel(a.fvgHigh)
-  };
-  drawPriceChart();
-  setText('livePrice',money(data.price));
-  setText('priceUpdated','Coinbase spot · Updated '+new Date(data.updatedAt).toLocaleTimeString());
-  setText('biasValue',a.bias||'—');setText('setupValue',a.stage||'—');
-  setText('strengthValue',(a.strength??'—')+' / 100');setText('stateValue',a.state||'WAIT');
-  setText('signalState',a.state||'WAIT');setText('signalStage',a.stage||'No active setup');
-  if(activeSignal){
-   setText('entryLabel','ENTRY');
-   setText('entryValue',money(a.entry));
-   setText('stopValue',money(a.stop));
-   setText('targetValue',money(a.tp1)+' / '+money(a.tp2));
-  }else{
-   const fvgLow=validLevel(a.fvgLow),fvgHigh=validLevel(a.fvgHigh);
-   const fvgReference=fvgLow!==null&&fvgHigh!==null?(fvgLow+fvgHigh)/2:null;
-   setText('entryLabel','FVG REFERENCE');
-   setText('entryValue',money(fvgReference));
-   setText('stopValue',fvgReference===null?'—':'After confirmation');
-   setText('targetValue',fvgReference===null?'—':'After confirmation');
-  }
-  const state=document.getElementById('signalState');
-  state.style.color=a.state==='BUY'?'var(--green)':a.state==='SELL'?'var(--red)':'var(--amber)';
-  setText('dataNotice','Live Coinbase price and current SMC analysis · '+data.pair+'. Strength is a rule-stage score, not win probability.');
- }catch(error){
-  setText('priceUpdated','Live data unavailable: '+error.message);
-  setText('signalStage','Could not load current SMC analysis.');
-  setText('dataNotice','Market API error: '+error.message);
- }
-}
-async function loadMarkets(){
- const box=document.getElementById('marketsRows');
- try{
-  const response=await fetch('/api/markets',{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to load markets');
-  box.innerHTML=data.markets.map(item=>'<div class="pair-row"><div class="coin"><div class="coin-icon">'+item.pair.slice(0,1)+'</div><div><b>'+item.pair.replace('USDT','')+'</b><small>'+item.pair+'</small></div></div><div class="right"><b>'+ (item.price?money(item.price):'Unavailable')+'</b><small>Coinbase spot</small></div></div>').join('')+'<div class="sub">Updated '+new Date(data.updatedAt).toLocaleTimeString()+'</div>';
-  const watch=['BTCUSDT','ETHUSDT','SOLUSDT'];
-  document.getElementById('watchlistRows').innerHTML=data.markets.filter(x=>watch.includes(x.pair)).map(item=>'<div class="pair-row"><div class="coin"><div class="coin-icon">'+item.pair.slice(0,1)+'</div><div><b>'+item.pair.replace('USDT','')+'</b><small>'+item.pair+'</small></div></div><div class="right"><b>'+(item.price?money(item.price):'Unavailable')+'</b><small>Coinbase spot</small></div></div>').join('');
- }catch(error){box.innerHTML='<div class="empty">Market data unavailable: '+error.message+'</div>';}
-}
-async function loadPerformance(){
- const box=document.getElementById('performanceRows');
- try{
-  const response=await fetch('/api/performance',{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Performance API unavailable');
-  setText('trackedValue',data.tracked);setText('winRateValue',data.winRate===null?'—':data.winRate+'%');
-  setText('winsValue',data.wins);setText('lossesValue',data.losses);
-  box.innerHTML='<div class="sub">'+(data.persistent?'Supabase persistent history':'Temporary in-memory history')+' · Latest '+data.records.length+' records</div>'+
-   (data.records.length?data.records.map(x=>'<div class="pair-row"><div><b>'+x.pair+' · '+x.side+'</b><small>'+new Date(x.created_at||Date.now()).toLocaleString()+'</small></div><div class="right"><b>'+x.outcome+'</b><small>Entry '+money(x.entry)+'</small></div></div>').join('') :'<div class="empty empty-state"><strong>No signals tracked yet</strong><span>There are no confirmed BUY/SELL setups in the history. WAIT conditions are intentionally excluded, so this is not a performance or database error. Your statistics will appear here after a genuine signal is recorded.</span></div>');
- }catch(error){box.textContent='Could not load performance: '+error.message;}
-}
-pairSelect.addEventListener('change',()=>{chartViewOffset=0;chartViewCount=90;loadMarket();loadChart();});
-checkBackend();loadMarket();loadChart();loadMarkets();loadPerformance();loadAlertSettings();
-setInterval(checkBackend,30000);setInterval(loadMarket,30000);setInterval(loadChart,30000);setInterval(loadMarkets,30000);setInterval(loadPerformance,60000);
-</script>
-</body>
-</html>
-+Number(n).toLocaleString('en-US',{maximumFractionDigits:8}):'—';
-let latestConfirmedSignal=null;
-const riskIds=['riskBalance','riskPercent','riskEntry','riskStop','riskTp1','riskTp2','riskSide'];
-const riskInput=id=>document.getElementById(id);
-const riskMoney=value=>Number.isFinite(value)?'
-const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
-async function loadMarket(){
- const pair=pairSelect.value;
- setText('pairLabel',pair.replace('USDT',' / USDT'));
- try{
-  const response=await fetch('/api/market?pair='+encodeURIComponent(pair),{cache:'no-store'});
-  const data=await response.json();if(!response.ok)throw new Error(data.error||'Market API unavailable');
-  const a=data.analysis||{};
-  const activeSignal=a.state==='BUY'||a.state==='SELL';
-  const validLevel=value=>value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))&&Number(value)>0?Number(value):null;
-  chartLevels={
-   entry:activeSignal?validLevel(a.entry):null,
-   stop:activeSignal?validLevel(a.stop):null,
-   tp1:activeSignal?validLevel(a.tp1):null,
-   tp2:activeSignal?validLevel(a.tp2):null,
-   liquidity:validLevel(a.liquidityLevel),mss:validLevel(a.mssLevel),
-   fvgLow:validLevel(a.fvgLow),fvgHigh:validLevel(a.fvgHigh)
-  };
-  drawPriceChart();
-  setText('livePrice',money(data.price));
-  setText('priceUpdated','Coinbase spot · Updated '+new Date(data.updatedAt).toLocaleTimeString());
-  setText('biasValue',a.bias||'—');setText('setupValue',a.stage||'—');
-  setText('strengthValue',(a.strength??'—')+' / 100');setText('stateValue',a.state||'WAIT');
-  setText('signalState',a.state||'WAIT');setText('signalStage',a.stage||'No active setup');
-  if(activeSignal){
-   setText('entryLabel','ENTRY');
-   setText('entryValue',money(a.entry));
-   setText('stopValue',money(a.stop));
-   setText('targetValue',money(a.tp1)+' / '+money(a.tp2));
-  }else{
-   const fvgLow=validLevel(a.fvgLow),fvgHigh=validLevel(a.fvgHigh);
-   const fvgReference=fvgLow!==null&&fvgHigh!==null?(fvgLow+fvgHigh)/2:null;
-   setText('entryLabel','FVG REFERENCE');
-   setText('entryValue',money(fvgReference));
-   setText('stopValue',fvgReference===null?'—':'After confirmation');
-   setText('targetValue',fvgReference===null?'—':'After confirmation');
-  }
-  const state=document.getElementById('signalState');
-  state.style.color=a.state==='BUY'?'var(--green)':a.state==='SELL'?'var(--red)':'var(--amber)';
-  setText('dataNotice','Live Coinbase price and current SMC analysis · '+data.pair+'. Strength is a rule-stage score, not win probability.');
- }catch(error){
-  setText('priceUpdated','Live data unavailable: '+error.message);
-  setText('signalStage','Could not load current SMC analysis.');
-  setText('dataNotice','Market API error: '+error.message);
- }
-}
-async function loadMarkets(){
- const box=document.getElementById('marketsRows');
- try{
-  const response=await fetch('/api/markets',{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to load markets');
-  box.innerHTML=data.markets.map(item=>'<div class="pair-row"><div class="coin"><div class="coin-icon">'+item.pair.slice(0,1)+'</div><div><b>'+item.pair.replace('USDT','')+'</b><small>'+item.pair+'</small></div></div><div class="right"><b>'+ (item.price?money(item.price):'Unavailable')+'</b><small>Coinbase spot</small></div></div>').join('')+'<div class="sub">Updated '+new Date(data.updatedAt).toLocaleTimeString()+'</div>';
-  const watch=['BTCUSDT','ETHUSDT','SOLUSDT'];
-  document.getElementById('watchlistRows').innerHTML=data.markets.filter(x=>watch.includes(x.pair)).map(item=>'<div class="pair-row"><div class="coin"><div class="coin-icon">'+item.pair.slice(0,1)+'</div><div><b>'+item.pair.replace('USDT','')+'</b><small>'+item.pair+'</small></div></div><div class="right"><b>'+(item.price?money(item.price):'Unavailable')+'</b><small>Coinbase spot</small></div></div>').join('');
- }catch(error){box.innerHTML='<div class="empty">Market data unavailable: '+error.message+'</div>';}
-}
-async function loadPerformance(){
- const box=document.getElementById('performanceRows');
- try{
-  const response=await fetch('/api/performance',{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Performance API unavailable');
-  setText('trackedValue',data.tracked);setText('winRateValue',data.winRate===null?'—':data.winRate+'%');
-  setText('winsValue',data.wins);setText('lossesValue',data.losses);
-  box.innerHTML='<div class="sub">'+(data.persistent?'Supabase persistent history':'Temporary in-memory history')+' · Latest '+data.records.length+' records</div>'+
-   (data.records.length?data.records.map(x=>'<div class="pair-row"><div><b>'+x.pair+' · '+x.side+'</b><small>'+new Date(x.created_at||Date.now()).toLocaleString()+'</small></div><div class="right"><b>'+x.outcome+'</b><small>Entry '+money(x.entry)+'</small></div></div>').join('') :'<div class="empty empty-state"><strong>No signals tracked yet</strong><span>There are no confirmed BUY/SELL setups in the history. WAIT conditions are intentionally excluded, so this is not a performance or database error. Your statistics will appear here after a genuine signal is recorded.</span></div>');
- }catch(error){box.textContent='Could not load performance: '+error.message;}
-}
-pairSelect.addEventListener('change',()=>{chartViewOffset=0;chartViewCount=90;loadMarket();loadChart();});
-checkBackend();loadMarket();loadChart();loadMarkets();loadPerformance();loadAlertSettings();
-setInterval(checkBackend,30000);setInterval(loadMarket,30000);setInterval(loadChart,30000);setInterval(loadMarkets,30000);setInterval(loadPerformance,60000);
-</script>
-</body>
-</html>
-+value.toLocaleString('en-US',{maximumFractionDigits:4}):'—';
-function calculateRisk(){
- const balance=Number(riskInput('riskBalance').value),percent=Number(riskInput('riskPercent').value);
- const entry=Number(riskInput('riskEntry').value),stop=Number(riskInput('riskStop').value);
- const tp1Raw=riskInput('riskTp1').value,tp2Raw=riskInput('riskTp2').value;
- const tp1=tp1Raw===''?null:Number(tp1Raw),tp2=tp2Raw===''?null:Number(tp2Raw);
- const side=riskInput('riskSide').value,error=document.getElementById('riskError');
- const outputIds=['riskAmount','riskNotional','riskQuantity','riskDistance','riskReward1','riskReward2'];
- const clear=()=>outputIds.forEach(id=>setText(id,'—'));
- error.textContent='';
- if(!Number.isFinite(balance)||balance<=0||!Number.isFinite(percent)||percent<=0||percent>100||!Number.isFinite(entry)||entry<=0||!Number.isFinite(stop)||stop<=0){clear();error.textContent='Enter a positive balance, risk percentage (up to 100%), entry and stop loss.';return;}
- const distance=Math.abs(entry-stop);
- const validStop=side==='BUY'?stop<entry:stop>entry;
- if(distance<=0||!validStop){clear();error.textContent='Stop loss must be below entry for BUY and above entry for SELL.';return;}
- const riskAmount=balance*percent/100,quantity=riskAmount/distance,notional=quantity*entry;
- setText('riskAmount',riskMoney(riskAmount));
- setText('riskNotional',riskMoney(notional));
- setText('riskQuantity',quantity.toLocaleString('en-US',{maximumFractionDigits:8}));
- setText('riskDistance',riskMoney(distance)+' ('+(distance/entry*100).toFixed(3)+'%)');
- const reward=(target)=>{if(target===null||!Number.isFinite(target)||target<=0)return '—';const move=side==='BUY'?target-entry:entry-target;if(move<=0)return 'Invalid target';return riskMoney(move*quantity)+' · '+(move/distance).toFixed(2)+'R';};
- setText('riskReward1',reward(tp1));setText('riskReward2',reward(tp2));
-}
-riskIds.forEach(id=>riskInput(id).addEventListener('input',calculateRisk));
-document.getElementById('useSignalLevels').addEventListener('click',()=>{
- const status=document.getElementById('riskSignalStatus');
- if(!latestConfirmedSignal){status.textContent='No confirmed BUY/SELL signal is available. WAIT and FVG reference levels are not trade entries.';return;}
- const s=latestConfirmedSignal;
- riskInput('riskSide').value=s.state;
- riskInput('riskEntry').value=s.entry;
- riskInput('riskStop').value=s.stop;
- riskInput('riskTp1').value=s.tp1;
- riskInput('riskTp2').value=s.tp2;
- status.textContent='Loaded '+s.pair+' '+s.state+' levels from the latest confirmed signal. Verify prices before use.';
- calculateRisk();
-});
+const money=n=>n!==null&&n!==undefined&&n!==''&&Number.isFinite(Number(n))?'$'+Number(n).toLocaleString('en-US',{maximumFractionDigits:8}):'—';
 const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
 async function loadMarket(){
  const pair=pairSelect.value;
