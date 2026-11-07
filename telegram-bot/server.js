@@ -243,24 +243,37 @@ function analyzeSMC(five, m15) {
     }
     if (!fvg) { setup = { side, stage: "Waiting for displacement / FVG", sweepExtreme, liquidityLevel, mssIndex, mssLevel }; continue; }
 
-    let retestIndex = -1;
+    let retestIndex = -1, rejectionConfirmed = false, fvgInvalidated = false;
     for (let r = fvg.index + 1; r < n; r++) {
-      if (c[r].l <= fvg.high && c[r].h >= fvg.low) { retestIndex = r; break; }
+      const touched = c[r].l <= fvg.high && c[r].h >= fvg.low;
+      if (side === "BUY" && c[r].c < fvg.low) { fvgInvalidated = true; break; }
+      if (side === "SELL" && c[r].c > fvg.high) { fvgInvalidated = true; break; }
+      if (!touched) continue;
+      retestIndex = r;
+      rejectionConfirmed = side === "BUY"
+        ? c[r].c > fvg.high && c[r].c > c[r].o
+        : c[r].c < fvg.low && c[r].c < c[r].o;
+      if (rejectionConfirmed) break;
+    }
+    if (fvgInvalidated) {
+      setup = { side, stage: "FVG invalidated — waiting for a new setup", sweepExtreme, liquidityLevel, mssIndex, mssLevel, fvg };
+      continue;
     }
     setup = {
       side,
-      stage: retestIndex === n - 1 ? "FVG retest active" :
+      stage: rejectionConfirmed && retestIndex === n - 1 ? "FVG rejection confirmed" :
+        retestIndex === n - 1 ? "FVG retest touched — waiting for rejection" :
         retestIndex >= 0 ? "FVG retest passed — waiting for a new setup" : "Waiting for FVG retest",
-      sweepExtreme, liquidityLevel, mssIndex, mssLevel, fvg, retestIndex
+      sweepExtreme, liquidityLevel, mssIndex, mssLevel, fvg, retestIndex, rejectionConfirmed
     };
   }
 
   const stage = setup ? setup.stage : "Waiting for liquidity sweep";
   const side = setup ? setup.side : null;
-  const ready = !!setup && setup.stage === "FVG retest active";
+  const ready = !!setup && setup.stage === "FVG rejection confirmed" && setup.rejectionConfirmed === true;
   const contextAligned = (side === "BUY" && bias === "Bullish") || (side === "SELL" && bias === "Bearish");
   const state = ready && contextAligned ? side : "WAIT";
-  const entry = setup?.fvg ? (setup.fvg.low + setup.fvg.high) / 2 : null;
+  const entry = ready ? px : setup?.fvg ? (setup.fvg.low + setup.fvg.high) / 2 : null;
   let stop = null, tp1 = null, tp2 = null, rr1 = null, rr2 = null;
 
   if (ready && Number.isFinite(entry)) {
