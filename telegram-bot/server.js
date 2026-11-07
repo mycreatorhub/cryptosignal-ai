@@ -319,9 +319,9 @@ async function handleUpdate(update) {
   } else if (text === "/start") {
     reply = "◈ CryptoSignal AI\n\nWelcome to your smart crypto trading assistant.\n\nChoose an action below to check prices, analyze a market, or manage automatic alerts.\n\n⏱ 5m entry · 15m context\n🧠 SMC-based experimental analysis\n\nSignals are not financial advice.";
   } else if (text === "/pairs") {
-    reply = "📊 SUPPORTED COINBASE PAIRS\n\n" + Object.keys(COINS).join("\\n") + "\\n\\nUse /price BTCUSDT or /signal BTCUSDT to get started.";
+    reply = "📊 SUPPORTED COINBASE PAIRS\n\n" + Object.keys(COINS).join("\n") + "\n\nUse /price BTCUSDT or /signal BTCUSDT to get started.";
   } else if (text === "/status") {
-    reply = "🟢 CRYPTOSIGNAL AI STATUS\\n\\nBot process: Running\\nAutomatic alerts for this chat: " + (alertChats.has(chatId) ? "ON 🔔" : "OFF 🔕") + "\\nScan interval: " + Math.round(ALERT_SCAN_INTERVAL_MS / 60000) + " minute(s)\\nSupported pairs: " + Object.keys(COINS).length + "\\n\\nNote: status reflects this running process; hosting sleep/restarts can pause alerts.";
+    reply = "🟢 CRYPTOSIGNAL AI STATUS\n\nBot process: Running\nAutomatic alerts for this chat: " + (alertChats.has(chatId) ? "ON 🔔" : "OFF 🔕") + "\nScan interval: " + Math.round(ALERT_SCAN_INTERVAL_MS / 60000) + " minute(s)\nSupported pairs: " + Object.keys(COINS).length + "\n\nNote: status reflects this running process; hosting sleep/restarts can pause alerts.";
   } else if (text === "/help") {
     reply = "Commands:\n/price BTCUSDT — latest Coinbase spot price\n/signal BTCUSDT — 5m SMC setup with 15m context\n/alerts on — enable automatic BUY/SELL alerts\n/alerts off — disable alerts\n\nSignals are experimental and are not financial advice.";
   } else if (text.startsWith("/price")) {
