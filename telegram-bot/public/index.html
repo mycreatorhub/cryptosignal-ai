@@ -143,7 +143,7 @@ async function loadChart(){
  try{
   const response=await fetch('/api/candles?pair='+encodeURIComponent(pair)+'&interval='+encodeURIComponent(chartInterval),{cache:'no-store'});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Candle API unavailable');
-  chartCandles=data.candles||[];chartViewCount=Math.min(chartViewCount||90,chartCandles.length);chartViewOffset=0;chartLivePrice=Number.isFinite(Number(data.price))?Number(data.price):null;chartLiquidityZones=Array.isArray(data.liquidityZones)?data.liquidityZones:[];
+  chartCandles=data.candles||[];chartViewCount=Math.min(chartViewCount||90,chartCandles.length);chartViewOffset=Math.min(chartViewOffset,Math.max(0,chartCandles.length-chartViewCount));chartLivePrice=Number.isFinite(Number(data.price))?Number(data.price):null;chartLiquidityZones=Array.isArray(data.liquidityZones)?data.liquidityZones:[];
   if(!chartCandles.length)throw new Error('No finalized candles returned.');
   setText('chartUpdated','Updated '+new Date(data.updatedAt).toLocaleTimeString());
   drawPriceChart();
@@ -215,7 +215,7 @@ async function loadPerformance(){
    (data.records.length?data.records.map(x=>'<div class="pair-row"><div><b>'+x.pair+' · '+x.side+'</b><small>'+new Date(x.created_at||Date.now()).toLocaleString()+'</small></div><div class="right"><b>'+x.outcome+'</b><small>Entry '+money(x.entry)+'</small></div></div>').join('') :'<div class="empty empty-state"><strong>No signals tracked yet</strong><span>There are no confirmed BUY/SELL setups in the history. WAIT conditions are intentionally excluded, so this is not a performance or database error. Your statistics will appear here after a genuine signal is recorded.</span></div>');
  }catch(error){box.textContent='Could not load performance: '+error.message;}
 }
-pairSelect.addEventListener('change',()=>{loadMarket();loadChart();});
+pairSelect.addEventListener('change',()=>{chartViewOffset=0;chartViewCount=90;loadMarket();loadChart();});
 checkBackend();loadMarket();loadChart();loadMarkets();loadPerformance();loadAlertSettings();
 setInterval(checkBackend,30000);setInterval(loadMarket,30000);setInterval(loadChart,30000);setInterval(loadMarkets,30000);setInterval(loadPerformance,60000);
 </script>
