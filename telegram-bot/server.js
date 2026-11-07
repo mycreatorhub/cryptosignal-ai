@@ -797,10 +797,22 @@ const server = createServer(async (req, res) => {
       const open = rows.filter(x => x.outcome === "OPEN").length;
       const ambiguous = rows.filter(x => x.outcome === "AMBIGUOUS").length;
       const decided = wins + losses;
+      const pairStats = Object.values(rows.reduce((groups, row) => {
+        const pair = row.pair || "UNKNOWN";
+        if (!groups[pair]) groups[pair] = { pair, wins: 0, losses: 0, open: 0, ambiguous: 0 };
+        if (row.outcome === "WIN") groups[pair].wins++;
+        else if (row.outcome === "LOSS") groups[pair].losses++;
+        else if (row.outcome === "OPEN") groups[pair].open++;
+        else if (row.outcome === "AMBIGUOUS") groups[pair].ambiguous++;
+        return groups;
+      }, {})).map(item => {
+        const resolved = item.wins + item.losses;
+        return { ...item, resolved, winRate: resolved ? Number((item.wins / resolved * 100).toFixed(1)) : null };
+      }).sort((a, b) => b.resolved - a.resolved || b.wins - a.wins || a.pair.localeCompare(b.pair));
       return res.end(JSON.stringify({
         tracked: rows.length, wins, losses, open, ambiguous,
         winRate: decided ? Number((wins / decided * 100).toFixed(1)) : null,
-        persistent, records: rows.slice(0, 25)
+        pairStats, persistent, records: rows.slice(0, 25)
       }));
     } catch (error) {
       res.writeHead(502, { "Content-Type": "application/json; charset=utf-8" });
