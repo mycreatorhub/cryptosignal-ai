@@ -1001,7 +1001,7 @@ async function refreshLivePrice(){
   }
 }
 
-loadTopCryptoPairs().then(()=>{try{scan($("pair").value)}catch(e){}});
+loadTopCryptoPairs().then(()=>scan($("pair").value).catch(()=>{}));
 refreshLivePrice();
 setInterval(refreshLivePrice,5000);
 $("refresh").addEventListener("click",async()=>{try{await scan()}catch{}});
