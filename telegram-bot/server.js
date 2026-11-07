@@ -4,6 +4,11 @@ const PORT = Number(process.env.PORT || 3000);
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || "";
 
+const ALERT_SCAN_INTERVAL_MS = Math.max(60000, Number(process.env.ALERT_SCAN_INTERVAL_MS || 300000));
+const alertChats = new Set();
+const lastAlertByPair = new Map();
+let alertScanRunning = false;
+
 const COINS = {
   BTCUSDT: "BTC-USD",
   ETHUSDT: "ETH-USD",
@@ -194,6 +199,57 @@ async function sendMessage(chatId, text) {
   if (!response.ok) throw new Error(`Telegram sendMessage failed: ${response.status}`);
 }
 
+function formatSignal(pair, a, live) {
+  return `◈ CryptoSignal AI · AUTOMATIC ALERT
+${pair} · 5m entry / 15m context
+
+SIGNAL: ${a.state}
+15m bias: ${a.bias}
+Setup: ${a.stage}
+Strength: ${a.strength}/100 (not win probability)
+
+Price: ${money(live)}
+Entry: ${money(a.entry)}
+Stop: ${money(a.stop)}
+TP1: ${money(a.tp1)} (${a.rr1 ?? "—"}R)
+TP2: ${money(a.tp2)} (${a.rr2 ?? "—"}R)
+
+Liquidity: ${money(a.liquidityLevel)}
+FVG: ${money(a.fvgLow)} – ${money(a.fvgHigh)}
+
+Experimental analysis only. Not financial advice.`;
+}
+
+async function scanForAlerts() {
+  if (alertScanRunning || alertChats.size === 0) return;
+  alertScanRunning = true;
+  try {
+    for (const pair of Object.keys(COINS)) {
+      try {
+        const [five, fifteen] = await Promise.all([getCandles(pair, "5m"), getCandles(pair, "15m")]);
+        const a = analyzeSMC(five, fifteen);
+        if (a.state !== "BUY" && a.state !== "SELL") {
+          lastAlertByPair.delete(pair);
+          continue;
+        }
+        const key = [a.state, a.entry, a.stop, a.tp1, a.tp2, a.fvgLow, a.fvgHigh].join("|");
+        if (lastAlertByPair.get(pair) === key) continue;
+        const live = await coinbasePrice(pair).catch(() => a.price);
+        const message = formatSignal(pair, a, live);
+        for (const chatId of alertChats) {
+          try { await sendMessage(chatId, message); }
+          catch (error) { console.error("Alert delivery failed:", error.message); }
+        }
+        lastAlertByPair.set(pair, key);
+      } catch (error) {
+        console.error(`Alert scan failed for ${pair}:`, error.message);
+      }
+    }
+  } finally {
+    alertScanRunning = false;
+  }
+}
+
 async function handleUpdate(update) {
   const message = update.message;
   const chatId = message?.chat?.id;
@@ -201,7 +257,18 @@ async function handleUpdate(update) {
   if (!chatId || !text) return;
 
   let reply;
-  if (text === "/start") {
+  if (text === "/alerts" || text.startsWith("/alerts ")) {
+    const action = (text.split(/\\s+/)[1] || "").toLowerCase();
+    if (action === "on") {
+      alertChats.add(chatId);
+      reply = `🔔 Automatic alerts enabled. I'll scan the supported Coinbase pairs about every ${Math.round(ALERT_SCAN_INTERVAL_MS / 60000)} minute(s) and send only new BUY/SELL setups. Keep in mind that alerts may pause if the hosting service sleeps or restarts.\n\nSend /alerts off to stop.`;
+    } else if (action === "off") {
+      alertChats.delete(chatId);
+      reply = "🔕 Automatic alerts disabled for this chat.";
+    } else {
+      reply = "Usage:\\n/alerts on — enable automatic BUY/SELL alerts\\n/alerts off — disable alerts";
+    }
+  } else if (text === "/start") {
     reply = "◈ CryptoSignal AI Bot\n\nWelcome! I can check public market prices and SMC scalp setups.\n\nCommands:\n/price BTCUSDT\n/signal BTCUSDT\n/help";
   } else if (text === "/help") {
     reply = "Commands:\n/price BTCUSDT — latest Coinbase spot price\n/signal BTCUSDT — 5m SMC setup with 15m context\n\nSignals are experimental and are not financial advice.";
@@ -271,5 +338,5 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`CryptoSignal Telegram Bot listening on port ${PORT}`);
+  console.log(`CryptoSignal Telegram Bot listening on port ${PORT}`);\n  setInterval(() => { scanForAlerts().catch(error => console.error("Alert scan error:", error)); }, ALERT_SCAN_INTERVAL_MS);
 });
