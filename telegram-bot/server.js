@@ -252,7 +252,8 @@ async function setBotCommands() {
     { command: "alerts", description: "Turn automatic alerts on or off" },
     { command: "pairs", description: "Show supported trading pairs" },
     { command: "status", description: "Check bot and alert status" },
-    { command: "performance", description: "View tracked signal outcomes" },\n    { command: "dbcheck", description: "Test Supabase database read and write" },
+    { command: "performance", description: "View tracked signal outcomes" },
+    { command: "dbcheck", description: "Test Supabase database read and write" },
     { command: "help", description: "Show available commands" }
   ];
   const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setMyCommands`, {
@@ -516,7 +517,9 @@ async function handleUpdate(update) {
     reply = "📊 SUPPORTED COINBASE PAIRS\n\n" + Object.keys(COINS).join("\n") + "\n\nUse /price BTCUSDT or /signal BTCUSDT to get started.";
   } else if (text === "/status") {
     reply = "🟢 CRYPTOSIGNAL AI STATUS\n\nBot process: Running\nAutomatic alerts for this chat: " + (alertChats.has(chatId) ? "ON 🔔" : "OFF 🔕") + "\nScan interval: " + Math.round(ALERT_SCAN_INTERVAL_MS / 60000) + " minute(s)\nSupported pairs: " + Object.keys(COINS).length + "\n\nNote: status reflects this running process; hosting sleep/restarts can pause alerts.";
-  } else if (text === "/dbcheck") {\n    reply = await checkDatabase();\n  } else if (text === "/performance") {
+  } else if (text === "/dbcheck") {
+    reply = await checkDatabase();
+  } else if (text === "/performance") {
     reply = await formatPerformance();
   } else if (text === "/help") {
     reply = "Commands:\n/start — open dashboard\n/price BTCUSDT — latest Coinbase spot price\n/signal BTCUSDT — 5m SMC setup with 15m context\n/alerts on — enable automatic BUY/SELL alerts\n/alerts off — disable alerts\n/pairs — show supported pairs\n/status — check bot and alert status\n/performance — view tracked signal outcomes\n/help — show commands\n\nSignals are experimental and are not financial advice.";
