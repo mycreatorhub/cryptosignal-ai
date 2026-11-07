@@ -562,6 +562,68 @@ const server = createServer(async (req, res) => {
     return res.end(MINI_APP_HTML);
   }
 
+  if (req.method === "GET" && requestPath === "/api/market") {
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+    try {
+      const params = new URL(req.url, "http://localhost").searchParams;
+      const pair = (params.get("pair") || "BTCUSDT").toUpperCase();
+      if (!Object.prototype.hasOwnProperty.call(COINS, pair)) {
+        res.writeHead(400, { "Content-Type": "application/json; charset=utf-8" });
+        return res.end(JSON.stringify({ error: "Unsupported pair." }));
+      }
+      const [five, fifteen, live] = await Promise.all([
+        getCandles(pair, "5m"),
+        getCandles(pair, "15m"),
+        coinbasePrice(pair)
+      ]);
+      const analysis = analyzeSMC(five, fifteen);
+      await updateSignalOutcomes(pair, five);
+      await recordSignal(pair, analysis);
+      return res.end(JSON.stringify({
+        pair, price: live, analysis,
+        updatedAt: new Date().toISOString(),
+        dataSource: "Coinbase"
+      }));
+    } catch (error) {
+      res.writeHead(502, { "Content-Type": "application/json; charset=utf-8" });
+      return res.end(JSON.stringify({ error: error.message || "Market data unavailable." }));
+    }
+  }
+
+  if (req.method === "GET" && requestPath === "/api/markets") {
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+    const entries = await Promise.all(Object.keys(COINS).map(async pair => {
+      try { return { pair, price: await coinbasePrice(pair) }; }
+      catch (error) { return { pair, error: error.message }; }
+    }));
+    return res.end(JSON.stringify({ markets: entries, updatedAt: new Date().toISOString() }));
+  }
+
+  if (req.method === "GET" && requestPath === "/api/performance") {
+    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+    try {
+      let rows = signalHistory;
+      let persistent = false;
+      if (DB_ENABLED) {
+        rows = await supabaseRequest("signal_history?select=pair,side,entry,stop,tp1,outcome,created_at,closed_at&order=created_at.desc&limit=500");
+        persistent = true;
+      }
+      const wins = rows.filter(x => x.outcome === "WIN").length;
+      const losses = rows.filter(x => x.outcome === "LOSS").length;
+      const open = rows.filter(x => x.outcome === "OPEN").length;
+      const ambiguous = rows.filter(x => x.outcome === "AMBIGUOUS").length;
+      const decided = wins + losses;
+      return res.end(JSON.stringify({
+        tracked: rows.length, wins, losses, open, ambiguous,
+        winRate: decided ? Number((wins / decided * 100).toFixed(1)) : null,
+        persistent, records: rows.slice(0, 25)
+      }));
+    } catch (error) {
+      res.writeHead(502, { "Content-Type": "application/json; charset=utf-8" });
+      return res.end(JSON.stringify({ error: error.message || "Performance data unavailable." }));
+    }
+  }
+
   if (req.method === "GET" && (requestPath === "/" || requestPath === "/health")) {
     res.writeHead(200, { "Content-Type": "application/json" });
     return res.end(JSON.stringify({
