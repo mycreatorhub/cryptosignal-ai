@@ -291,6 +291,26 @@ function analyzeSMC(five, m15) {
   };
 }
 
+function findLiquidityZones(candles) {
+  const c = Array.isArray(candles) ? candles : [];
+  if (c.length < 10) return [];
+  const ranges = c.slice(-15).map((x, i, a) => {
+    const prev = a[i - 1];
+    return prev ? Math.max(x.h - x.l, Math.abs(x.h - prev.c), Math.abs(x.l - prev.c)) : x.h - x.l;
+  });
+  const atr = ranges.reduce((sum, value) => sum + value, 0) / ranges.length;
+  const halfWidth = Math.max(atr * 0.12, Math.abs(c.at(-1).c) * 0.00015);
+  const highs = [], lows = [];
+  for (let i = 2; i < c.length - 2; i++) {
+    const left = c.slice(i - 2, i), right = c.slice(i + 1, i + 3);
+    if (left.every(x => c[i].h > x.h) && right.every(x => c[i].h > x.h))
+      highs.push({ side: "BSL", level: c[i].h, low: c[i].h - halfWidth, high: c[i].h + halfWidth, time: c[i].t });
+    if (left.every(x => c[i].l < x.l) && right.every(x => c[i].l < x.l))
+      lows.push({ side: "SSL", level: c[i].l, low: c[i].l - halfWidth, high: c[i].l + halfWidth, time: c[i].t });
+  }
+  return [...highs.slice(-2), ...lows.slice(-2)];
+}
+
 function money(n) { return Number.isFinite(n) ? n.toLocaleString("en-US", { maximumFractionDigits: 8 }) : "—"; }
 
 async function coinbasePrice(symbol) {
@@ -704,6 +724,7 @@ const server = createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
       return res.end(JSON.stringify({
         pair, interval, price, candles: candles.slice(-90),
+        liquidityZones: findLiquidityZones(candles.slice(-90)),
         updatedAt: new Date().toISOString(), dataSource: "Coinbase Exchange"
       }));
     } catch (error) {
