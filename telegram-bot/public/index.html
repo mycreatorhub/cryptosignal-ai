@@ -82,6 +82,7 @@ let chartInterval='5m';
 let chartCandles=[];
 let chartLivePrice=null;
 let chartLevels=null;
+let chartLiquidityZones=[];
 const chartCanvas=document.getElementById('priceChart');
 const chartMessage=document.getElementById('chartMessage');
 function drawPriceChart(){
@@ -98,10 +99,22 @@ function drawPriceChart(){
  let min=Math.min(...lows),max=Math.max(...highs);
  if(chartLivePrice&&Number.isFinite(chartLivePrice)){min=Math.min(min,chartLivePrice);max=Math.max(max,chartLivePrice);}
  if(chartLevels){const tradeLevels=['entry','stop','tp1','tp2'].map(key=>chartLevels[key]).filter(Number.isFinite);if(tradeLevels.length){min=Math.min(min,...tradeLevels);max=Math.max(max,...tradeLevels);}}
+ if(chartLiquidityZones.length){const zonePrices=chartLiquidityZones.flatMap(z=>[z.low,z.high]).filter(Number.isFinite);if(zonePrices.length){min=Math.min(min,...zonePrices);max=Math.max(max,...zonePrices);}}
  const pad=(max-min)*.08||Math.max(max*.001,.01);min-=pad;max+=pad;
  const y=v=>top+(max-v)/(max-min)*plotH;
  ctx.font='10px system-ui';ctx.fillStyle='#8292aa';ctx.textAlign='left';ctx.strokeStyle='#26364b';ctx.lineWidth=1;
  for(let i=0;i<=4;i++){const yy=top+plotH*i/4;ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(w-right,yy);ctx.stroke();const val=max-(max-min)*i/4;ctx.fillText(val.toLocaleString('en-US',{maximumFractionDigits:2}),w-right+6,yy+3);}
+ if(chartLiquidityZones.length){
+  chartLiquidityZones.forEach(zone=>{
+   if(!Number.isFinite(zone.low)||!Number.isFinite(zone.high)||zone.high<min||zone.low>max)return;
+   const yTop=y(zone.high),yBottom=y(zone.low),isBuySide=zone.side==='BSL';
+   ctx.save();ctx.fillStyle=isBuySide?'rgba(255,100,124,.13)':'rgba(50,214,154,.13)';
+   ctx.fillRect(left,yTop,plotW,Math.max(2,yBottom-yTop));
+   ctx.strokeStyle=isBuySide?'rgba(255,100,124,.65)':'rgba(50,214,154,.65)';
+   ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(left,yTop);ctx.lineTo(w-right,yTop);ctx.moveTo(left,yBottom);ctx.lineTo(w-right,yBottom);ctx.stroke();
+   ctx.setLineDash([]);ctx.fillStyle=isBuySide?'#ff9aaa':'#72e6b7';ctx.font='9px system-ui';ctx.textAlign='left';ctx.fillText(zone.side,w-right+5,Math.max(top+9,Math.min(hh-bottom-2,(yTop+yBottom)/2+3)));ctx.restore();
+  });
+ }
  const step=plotW/chartCandles.length,candleW=Math.max(2,Math.min(9,step*.62));
  chartCandles.forEach((c,i)=>{const x=left+i*step+step/2,up=c.c>=c.o,color=up?'#32d69a':'#ff647c';ctx.strokeStyle=color;ctx.fillStyle=color;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y(c.h));ctx.lineTo(x,y(c.l));ctx.stroke();const yo=y(c.o),yc=y(c.c),body=Math.max(1,Math.abs(yc-yo));ctx.fillRect(x-candleW/2,Math.min(yo,yc),candleW,body);});
  if(chartLevels){
@@ -127,7 +140,7 @@ async function loadChart(){
  try{
   const response=await fetch('/api/candles?pair='+encodeURIComponent(pair)+'&interval='+encodeURIComponent(chartInterval),{cache:'no-store'});
   const data=await response.json();if(!response.ok)throw new Error(data.error||'Candle API unavailable');
-  chartCandles=data.candles||[];chartLivePrice=Number.isFinite(Number(data.price))?Number(data.price):null;
+  chartCandles=data.candles||[];chartLivePrice=Number.isFinite(Number(data.price))?Number(data.price):null;chartLiquidityZones=Array.isArray(data.liquidityZones)?data.liquidityZones:[];
   if(!chartCandles.length)throw new Error('No finalized candles returned.');
   setText('chartUpdated','Updated '+new Date(data.updatedAt).toLocaleTimeString());
   drawPriceChart();
