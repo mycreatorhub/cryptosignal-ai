@@ -271,7 +271,7 @@ async function handleUpdate(update) {
   } else if (text === "/start") {
     reply = "◈ CryptoSignal AI Bot\n\nWelcome! I can check public market prices and SMC scalp setups.\n\nCommands:\n/price BTCUSDT\n/signal BTCUSDT\n/help";
   } else if (text === "/help") {
-    reply = "Commands:\n/price BTCUSDT — latest Coinbase spot price\n/signal BTCUSDT — 5m SMC setup with 15m context\n\nSignals are experimental and are not financial advice.";
+    reply = "Commands:\n/price BTCUSDT — latest Coinbase spot price\n/signal BTCUSDT — 5m SMC setup with 15m context\n/alerts on — enable automatic BUY/SELL alerts\n/alerts off — disable alerts\n\nSignals are experimental and are not financial advice.";
   } else if (text.startsWith("/price")) {
     const pair = (text.split(/\s+/)[1] || "BTCUSDT").toUpperCase();
     if (!/^[A-Z0-9]{5,20}$/.test(pair)) reply = "Invalid pair. Example: /price BTCUSDT";
@@ -338,5 +338,6 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`CryptoSignal Telegram Bot listening on port ${PORT}`);\n  setInterval(() => { scanForAlerts().catch(error => console.error("Alert scan error:", error)); }, ALERT_SCAN_INTERVAL_MS);
+  console.log(`CryptoSignal Telegram Bot listening on port ${PORT}`);
+  setInterval(() => { scanForAlerts().catch(error => console.error("Alert scan error:", error)); }, ALERT_SCAN_INTERVAL_MS);
 });
