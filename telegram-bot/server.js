@@ -160,7 +160,7 @@ function analyzeSMC(five, m15) {
 
   const strength = ready ? 100 : setup?.fvg ? 80 : setup?.mssIndex !== undefined ? 60 : setup ? 35 : 0;
   return {
-    symbol: symbolSafeSymbol(px), px, bias, state, side, stage, strength,
+    price: px, bias, state, side, stage, strength,
     entry, stop, tp1, tp2, rr1, rr2, atr: av, atrPct: av / px * 100,
     liquidityLevel: setup?.liquidityLevel ?? null,
     sweepExtreme: setup?.sweepExtreme ?? null,
@@ -171,7 +171,6 @@ function analyzeSMC(five, m15) {
   };
 }
 
-function symbolSafeSymbol(price) { return Number.isFinite(price) ? price : null; }
 function money(n) { return Number.isFinite(n) ? n.toLocaleString("en-US", { maximumFractionDigits: 8 }) : "—"; }
 
 async function coinbasePrice(symbol) {
