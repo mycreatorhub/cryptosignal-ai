@@ -28,7 +28,7 @@
 <div class="heading"><div><div class="eyebrow">Market overview</div><h1>Dashboard</h1></div><select class="select" id="pair"><option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option><option>BNBUSDT</option><option>XRPUSDT</option><option>ADAUSDT</option><option>DOGEUSDT</option><option>LTCUSDT</option><option>LINKUSDT</option><option>AVAXUSDT</option><option>ZECUSDT</option><option>NEARUSDT</option><option>XLMUSDT</option><option>UNIUSDT</option><option>SUIUSDT</option></select></div>
 <div class="card"><div class="price-row"><div><div class="eyebrow" id="pairLabel">BTC / USDT</div><div class="price" id="livePrice">Loading…</div><div class="sub" id="priceUpdated">Connecting to Coinbase…</div></div><div class="pill">5M ENTRY · 15M CONTEXT</div></div><div class="chart-toolbar"><div><b>LIVE PRICE CHART</b><small id="chartMeta">Coinbase · 5-minute candles</small></div><div class="chart-tabs"><button class="chart-tab" data-interval="1m">1M</button><button class="chart-tab active" data-interval="5m">5M</button><button class="chart-tab" data-interval="15m">15M</button></div></div><div class="chart-frame" id="chartFrame"><canvas id="priceChart" aria-label="Candlestick price chart"></canvas><div id="chartCrosshair" style="display:none;position:absolute;z-index:2;pointer-events:none;padding:7px 9px;border:1px solid #40536e;border-radius:8px;background:#08111fee;color:#eaf0fa;font-size:10px;line-height:1.6;box-shadow:0 5px 18px #0008"></div><div id="chartMessage" class="chart-message">Loading candle data…</div></div><div style="display:flex;justify-content:flex-end;gap:6px;margin-top:7px"><button class="chart-tab" id="chartZoomOut" type="button">−</button><button class="chart-tab" id="chartZoomIn" type="button">+</button><button class="chart-tab" id="chartReset" type="button">Reset</button></div><div class="chart-legend"><span><i class="up"></i> Bullish</span><span><i class="down"></i> Bearish</span><span id="chartUpdated">Waiting for data</span></div></div>
 <div class="grid"><div class="metric"><small>15m market bias</small><b id="biasValue">—</b></div><div class="metric"><small>5m setup</small><b id="setupValue">WAIT</b></div><div class="metric"><small>Signal strength</small><b id="strengthValue">— / 100</b></div><div class="metric"><small>Signal state</small><b id="stateValue">—</b></div></div>
-<h2 class="section-title">SMC signal</h2><div class="card"><div class="signal"><div><div class="eyebrow">Current setup</div><div class="wait" id="signalState">WAIT</div><p id="signalStage">Loading live SMC analysis…</p></div><div class="signal-icon">⌁</div></div><div class="levels"><div class="level"><small>ENTRY</small><b id="entryValue">—</b></div><div class="level"><small>STOP LOSS</small><b id="stopValue">—</b></div><div class="level"><small>TP1 / TP2</small><b id="targetValue">—</b></div></div></div>
+<h2 class="section-title">SMC signal</h2><div class="card"><div class="signal"><div><div class="eyebrow">Current setup</div><div class="wait" id="signalState">WAIT</div><p id="signalStage">Loading live SMC analysis…</p></div><div class="signal-icon">⌁</div></div><div class="levels"><div class="level"><small id="entryLabel">ENTRY</small><b id="entryValue">—</b></div><div class="level"><small>STOP LOSS</small><b id="stopValue">—</b></div><div class="level"><small>TP1 / TP2</small><b id="targetValue">—</b></div></div></div>
 <div class="notice" id="dataNotice">Connecting to live market data. Experimental analysis only; not financial advice.</div>
 <h2 class="section-title">Watchlist</h2><div class="card" id="watchlist"><div id="watchlistRows"><div class="empty">Loading Coinbase prices…</div></div></div>
 </section>
@@ -186,8 +186,19 @@ async function loadMarket(){
   setText('biasValue',a.bias||'—');setText('setupValue',a.stage||'—');
   setText('strengthValue',(a.strength??'—')+' / 100');setText('stateValue',a.state||'WAIT');
   setText('signalState',a.state||'WAIT');setText('signalStage',a.stage||'No active setup');
-  setText('entryValue',money(a.entry));setText('stopValue',money(a.stop));
-  setText('targetValue',money(a.tp1)+' / '+money(a.tp2));
+  if(activeSignal){
+   setText('entryLabel','ENTRY');
+   setText('entryValue',money(a.entry));
+   setText('stopValue',money(a.stop));
+   setText('targetValue',money(a.tp1)+' / '+money(a.tp2));
+  }else{
+   const fvgLow=validLevel(a.fvgLow),fvgHigh=validLevel(a.fvgHigh);
+   const fvgReference=fvgLow!==null&&fvgHigh!==null?(fvgLow+fvgHigh)/2:null;
+   setText('entryLabel','FVG REFERENCE');
+   setText('entryValue',money(fvgReference));
+   setText('stopValue',fvgReference===null?'—':'After confirmation');
+   setText('targetValue',fvgReference===null?'—':'After confirmation');
+  }
   const state=document.getElementById('signalState');
   state.style.color=a.state==='BUY'?'var(--green)':a.state==='SELL'?'var(--red)':'var(--amber)';
   setText('dataNotice','Live Coinbase price and current SMC analysis · '+data.pair+'. Strength is a rule-stage score, not win probability.');
