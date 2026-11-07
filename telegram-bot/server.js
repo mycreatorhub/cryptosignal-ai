@@ -505,7 +505,8 @@ const server = createServer(async (req, res) => {
       ok: true,
       service: "CryptoSignal Telegram Bot",
       telegramTokenConfigured: Boolean(BOT_TOKEN),
-      webhookSecretConfigured: Boolean(WEBHOOK_SECRET)
+      webhookSecretConfigured: Boolean(WEBHOOK_SECRET),
+      supabaseConfigured: DB_ENABLED
     }));
   }
 
