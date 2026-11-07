@@ -189,14 +189,51 @@ async function coinbasePrice(symbol) {
   return price;
 }
 
-async function sendMessage(chatId, text) {
+const MAIN_MENU = {
+  inline_keyboard: [
+    [{ text: "🎯 Get Trading Signal", callback_data: "signal:BTCUSDT" }],
+    [{ text: "💰 Live BTC Price", callback_data: "price:BTCUSDT" }, { text: "📊 Supported Pairs", callback_data: "pairs" }],
+    [{ text: "🔔 Alerts ON", callback_data: "alerts:on" }, { text: "🔕 Alerts OFF", callback_data: "alerts:off" }],
+    [{ text: "🟢 Bot Status", callback_data: "status" }, { text: "❓ Help", callback_data: "help" }]
+  ]
+};
+
+async function sendMessage(chatId, text, replyMarkup = MAIN_MENU) {
   if (!BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN is not configured.");
   const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text })
+    body: JSON.stringify({ chat_id: chatId, text, reply_markup: replyMarkup })
   });
   if (!response.ok) throw new Error(`Telegram sendMessage failed: ${response.status}`);
+}
+
+async function answerCallbackQuery(callbackId) {
+  if (!BOT_TOKEN || !callbackId) return;
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ callback_query_id: callbackId })
+  });
+}
+
+async function setBotCommands() {
+  if (!BOT_TOKEN) return;
+  const commands = [
+    { command: "start", description: "Open the CryptoSignal AI dashboard" },
+    { command: "signal", description: "Get an SMC trading signal" },
+    { command: "price", description: "Check a live crypto price" },
+    { command: "alerts", description: "Turn automatic alerts on or off" },
+    { command: "pairs", description: "Show supported trading pairs" },
+    { command: "status", description: "Check bot and alert status" },
+    { command: "help", description: "Show available commands" }
+  ];
+  const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setMyCommands`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ commands })
+  });
+  if (!response.ok) throw new Error(`Telegram setMyCommands failed: ${response.status}`);
 }
 
 function formatSignal(pair, a, live) {
@@ -251,9 +288,20 @@ async function scanForAlerts() {
 }
 
 async function handleUpdate(update) {
-  const message = update.message;
+  const callback = update.callback_query;
+  if (callback) await answerCallbackQuery(callback.id);
+  const message = update.message || callback?.message;
   const chatId = message?.chat?.id;
-  const text = message?.text?.trim();
+  let text = message?.text?.trim();
+  if (callback?.data) {
+    const action = callback.data;
+    if (action.startsWith("signal:")) text = `/signal ${action.split(":")[1]}`;
+    else if (action.startsWith("price:")) text = `/price ${action.split(":")[1]}`;
+    else if (action.startsWith("alerts:")) text = `/alerts ${action.split(":")[1]}`;
+    else if (action === "pairs") text = "/pairs";
+    else if (action === "status") text = "/status";
+    else if (action === "help") text = "/help";
+  }
   if (!chatId || !text) return;
 
   let reply;
@@ -269,7 +317,11 @@ async function handleUpdate(update) {
       reply = "Usage:\n/alerts on — enable automatic BUY/SELL alerts\n/alerts off — disable alerts";
     }
   } else if (text === "/start") {
-    reply = "◈ CryptoSignal AI Bot\n\nWelcome! I can check public market prices and SMC scalp setups.\n\nCommands:\n/price BTCUSDT\n/signal BTCUSDT\n/help";
+    reply = "◈ CryptoSignal AI\n\nWelcome to your smart crypto trading assistant.\n\nChoose an action below to check prices, analyze a market, or manage automatic alerts.\n\n⏱ 5m entry · 15m context\n🧠 SMC-based experimental analysis\n\nSignals are not financial advice.";
+  } else if (text === "/pairs") {
+    reply = "📊 SUPPORTED COINBASE PAIRS\n\n" + Object.keys(COINS).join("\\n") + "\\n\\nUse /price BTCUSDT or /signal BTCUSDT to get started.";
+  } else if (text === "/status") {
+    reply = "🟢 CRYPTOSIGNAL AI STATUS\\n\\nBot process: Running\\nAutomatic alerts for this chat: " + (alertChats.has(chatId) ? "ON 🔔" : "OFF 🔕") + "\\nScan interval: " + Math.round(ALERT_SCAN_INTERVAL_MS / 60000) + " minute(s)\\nSupported pairs: " + Object.keys(COINS).length + "\\n\\nNote: status reflects this running process; hosting sleep/restarts can pause alerts.";
   } else if (text === "/help") {
     reply = "Commands:\n/price BTCUSDT — latest Coinbase spot price\n/signal BTCUSDT — 5m SMC setup with 15m context\n/alerts on — enable automatic BUY/SELL alerts\n/alerts off — disable alerts\n\nSignals are experimental and are not financial advice.";
   } else if (text.startsWith("/price")) {
@@ -296,7 +348,7 @@ async function handleUpdate(update) {
     reply = "Unknown command. Send /help to see available commands.";
   }
 
-  await sendMessage(chatId, reply);
+  await sendMessage(chatId, reply, MAIN_MENU);
 }
 
 const server = createServer(async (req, res) => {
@@ -339,5 +391,6 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`CryptoSignal Telegram Bot listening on port ${PORT}`);
+  setBotCommands().catch(error => console.error("Telegram command menu setup failed:", error.message));
   setInterval(() => { scanForAlerts().catch(error => console.error("Alert scan error:", error)); }, ALERT_SCAN_INTERVAL_MS);
 });
