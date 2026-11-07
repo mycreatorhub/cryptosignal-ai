@@ -46,7 +46,8 @@ async function supabaseRequest(path, options = {}) {
   const body = await response.text();
   return body ? JSON.parse(body) : null;
 }
-\nfunction closedOnly(candles) {
+
+function closedOnly(candles) {
   return candles.filter(c => c.closeTime < Date.now());
 }
 
