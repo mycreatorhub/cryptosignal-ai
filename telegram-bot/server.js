@@ -7,6 +7,8 @@ const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || "";
 const ALERT_SCAN_INTERVAL_MS = Math.max(60000, Number(process.env.ALERT_SCAN_INTERVAL_MS || 300000));
 const alertChats = new Set();
 const lastAlertByPair = new Map();
+const signalHistory = [];
+const MAX_SIGNAL_HISTORY = 500;
 let alertScanRunning = false;
 
 const COINS = {
@@ -194,6 +196,7 @@ const MAIN_MENU = {
     [{ text: "🎯 Get Trading Signal", callback_data: "signal:BTCUSDT" }],
     [{ text: "💰 Live BTC Price", callback_data: "price:BTCUSDT" }, { text: "📊 Supported Pairs", callback_data: "pairs" }],
     [{ text: "🔔 Alerts ON", callback_data: "alerts:on" }, { text: "🔕 Alerts OFF", callback_data: "alerts:off" }],
+    [{ text: "📈 Performance", callback_data: "performance" }],
     [{ text: "🟢 Bot Status", callback_data: "status" }, { text: "❓ Help", callback_data: "help" }]
   ]
 };
@@ -226,6 +229,7 @@ async function setBotCommands() {
     { command: "alerts", description: "Turn automatic alerts on or off" },
     { command: "pairs", description: "Show supported trading pairs" },
     { command: "status", description: "Check bot and alert status" },
+    { command: "performance", description: "View tracked signal outcomes" },
     { command: "help", description: "Show available commands" }
   ];
   const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setMyCommands`, {
@@ -257,6 +261,65 @@ FVG: ${money(a.fvgLow)} – ${money(a.fvgHigh)}
 Experimental analysis only. Not financial advice.`;
 }
 
+function recordSignal(pair, a) {
+  if (a.state !== "BUY" && a.state !== "SELL") return;
+  const key = [pair, a.state, a.entry, a.stop, a.tp1, a.fvgLow, a.fvgHigh].join("|");
+  if (signalHistory.some(x => x.key === key)) return;
+  signalHistory.push({
+    key, pair, side: a.state, entry: a.entry, stop: a.stop, tp1: a.tp1,
+    createdAt: Date.now(), outcome: "OPEN"
+  });
+  while (signalHistory.length > MAX_SIGNAL_HISTORY) signalHistory.shift();
+}
+
+function updateSignalOutcomes(pair, candles) {
+  const closed = closedOnly(candles);
+  for (const signal of signalHistory) {
+    if (signal.pair !== pair || signal.outcome !== "OPEN") continue;
+    for (const candle of closed) {
+      if (candle.closeTime <= signal.createdAt) continue;
+      const hitStop = signal.side === "BUY" ? candle.l <= signal.stop : candle.h >= signal.stop;
+      const hitTarget = signal.side === "BUY" ? candle.h >= signal.tp1 : candle.l <= signal.tp1;
+      if (hitStop && hitTarget) {
+        signal.outcome = "AMBIGUOUS";
+        signal.closedAt = candle.closeTime;
+        break;
+      }
+      if (hitStop) {
+        signal.outcome = "LOSS";
+        signal.closedAt = candle.closeTime;
+        break;
+      }
+      if (hitTarget) {
+        signal.outcome = "WIN";
+        signal.closedAt = candle.closeTime;
+        break;
+      }
+    }
+  }
+}
+
+function formatPerformance() {
+  const wins = signalHistory.filter(x => x.outcome === "WIN").length;
+  const losses = signalHistory.filter(x => x.outcome === "LOSS").length;
+  const open = signalHistory.filter(x => x.outcome === "OPEN").length;
+  const ambiguous = signalHistory.filter(x => x.outcome === "AMBIGUOUS").length;
+  const decided = wins + losses;
+  const winRate = decided ? (wins / decided * 100).toFixed(1) : "—";
+  return `📈 CRYPTOSIGNAL AI · PERFORMANCE
+
+Tracked signals: ${signalHistory.length}
+🟢 TP1 reached: ${wins}
+🔴 Stop Loss reached: ${losses}
+⏳ Still active: ${open}
+⚪ Ambiguous candles: ${ambiguous}
+
+Win rate: ${winRate}${decided ? "%" : ""}
+Based on ${decided} resolved signals.
+
+⚠️ In-memory tracking only: history resets when the service restarts. A candle touching both TP1 and SL is excluded from win-rate calculations. Experimental tracking, not audited trading results.`;
+}
+
 async function scanForAlerts() {
   if (alertScanRunning || alertChats.size === 0) return;
   alertScanRunning = true;
@@ -265,11 +328,13 @@ async function scanForAlerts() {
       try {
         const [five, fifteen] = await Promise.all([getCandles(pair, "5m"), getCandles(pair, "15m")]);
         const a = analyzeSMC(five, fifteen);
+        updateSignalOutcomes(pair, five);
         if (a.state !== "BUY" && a.state !== "SELL") {
           lastAlertByPair.delete(pair);
           continue;
         }
         const key = [a.state, a.entry, a.stop, a.tp1, a.tp2, a.fvgLow, a.fvgHigh].join("|");
+        recordSignal(pair, a);
         if (lastAlertByPair.get(pair) === key) continue;
         const live = await coinbasePrice(pair).catch(() => a.price);
         const message = formatSignal(pair, a, live);
@@ -300,6 +365,7 @@ async function handleUpdate(update) {
     else if (action.startsWith("alerts:")) text = `/alerts ${action.split(":")[1]}`;
     else if (action === "pairs") text = "/pairs";
     else if (action === "status") text = "/status";
+    else if (action === "performance") text = "/performance";
     else if (action === "help") text = "/help";
   }
   if (!chatId || !text) return;
@@ -322,8 +388,10 @@ async function handleUpdate(update) {
     reply = "📊 SUPPORTED COINBASE PAIRS\n\n" + Object.keys(COINS).join("\n") + "\n\nUse /price BTCUSDT or /signal BTCUSDT to get started.";
   } else if (text === "/status") {
     reply = "🟢 CRYPTOSIGNAL AI STATUS\n\nBot process: Running\nAutomatic alerts for this chat: " + (alertChats.has(chatId) ? "ON 🔔" : "OFF 🔕") + "\nScan interval: " + Math.round(ALERT_SCAN_INTERVAL_MS / 60000) + " minute(s)\nSupported pairs: " + Object.keys(COINS).length + "\n\nNote: status reflects this running process; hosting sleep/restarts can pause alerts.";
+  } else if (text === "/performance") {
+    reply = formatPerformance();
   } else if (text === "/help") {
-    reply = "Commands:\n/start — open dashboard\n/price BTCUSDT — latest Coinbase spot price\n/signal BTCUSDT — 5m SMC setup with 15m context\n/alerts on — enable automatic BUY/SELL alerts\n/alerts off — disable alerts\n/pairs — show supported pairs\n/status — check bot and alert status\n/help — show commands\n\nSignals are experimental and are not financial advice.";
+    reply = "Commands:\n/start — open dashboard\n/price BTCUSDT — latest Coinbase spot price\n/signal BTCUSDT — 5m SMC setup with 15m context\n/alerts on — enable automatic BUY/SELL alerts\n/alerts off — disable alerts\n/pairs — show supported pairs\n/status — check bot and alert status\n/performance — view tracked signal outcomes\n/help — show commands\n\nSignals are experimental and are not financial advice.";
   } else if (text.startsWith("/price")) {
     const pair = (text.split(/\s+/)[1] || "BTCUSDT").toUpperCase();
     if (!/^[A-Z0-9]{5,20}$/.test(pair)) reply = "Invalid pair. Example: /price BTCUSDT";
@@ -338,6 +406,8 @@ async function handleUpdate(update) {
       try {
         const [five, fifteen] = await Promise.all([getCandles(pair, "5m"), getCandles(pair, "15m")]);
         const a = analyzeSMC(five, fifteen);
+        updateSignalOutcomes(pair, five);
+        recordSignal(pair, a);
         const live = await coinbasePrice(pair).catch(() => a.price);
         reply = `◈ CryptoSignal AI · SMC\n${pair} · 5m entry / 15m context\n\nSIGNAL: ${a.state}\n15m bias: ${a.bias}\nSetup: ${a.stage}\nStrength: ${a.strength}/100 (rule stages, not win probability)\n\nPrice: $${money(live)}\nEntry: $${money(a.entry)}\nStop: $${money(a.stop)}\nTP1: $${money(a.tp1)} (${a.rr1 ?? "—"}R)\nTP2: $${money(a.tp2)} (${a.rr2 ?? "—"}R)\n\nLiquidity: $${money(a.liquidityLevel)}\nSweep extreme: $${money(a.sweepExtreme)}\nMSS: $${money(a.mssLevel)}\nFVG: $${money(a.fvgLow)} – $${money(a.fvgHigh)}\n5m ATR: $${money(a.atr)}\n\nExperimental analysis only. Not financial advice.`;
       } catch (error) {
