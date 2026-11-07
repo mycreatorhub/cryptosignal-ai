@@ -159,7 +159,7 @@ function ema(values, period) {
 async function getCandles(symbol, interval) {
   const base = symbol.toUpperCase().replace(/USDT$/, "");
   const product = `${base}-USD`;
-  const granularity = { "5m": 300, "15m": 900 }[interval];
+  const granularity = { "1m": 60, "5m": 300, "15m": 900 }[interval];
   if (!granularity) throw new Error("Unsupported candle interval.");
 
   const url = `https://api.exchange.coinbase.com/products/${product}/candles?granularity=${granularity}`;
@@ -716,9 +716,9 @@ const server = createServer(async (req, res) => {
         res.writeHead(400, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
         return res.end(JSON.stringify({ error: "Unsupported pair." }));
       }
-      if (!["5m", "15m"].includes(interval)) {
+      if (!["1m", "5m", "15m"].includes(interval)) {
         res.writeHead(400, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
-        return res.end(JSON.stringify({ error: "Unsupported interval. Use 5m or 15m." }));
+        return res.end(JSON.stringify({ error: "Unsupported interval. Use 1m, 5m or 15m." }));
       }
       const [candles, price] = await Promise.all([getCandles(pair, interval), coinbasePrice(pair)]);
       res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
