@@ -283,9 +283,24 @@ FVG: ${money(a.fvgLow)} – ${money(a.fvgHigh)}
 Experimental analysis only. Not financial advice.`;
 }
 
-function recordSignal(pair, a) {
+async function recordSignal(pair, a) {
   if (a.state !== "BUY" && a.state !== "SELL") return;
   const key = [pair, a.state, a.entry, a.stop, a.tp1, a.fvgLow, a.fvgHigh].join("|");
+  if (DB_ENABLED) {
+    try {
+      await supabaseRequest("signal_history?on_conflict=signal_key", {
+        method: "POST",
+        headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+        body: JSON.stringify({
+          signal_key: key, pair, side: a.state, entry: a.entry,
+          stop: a.stop, tp1: a.tp1, outcome: "OPEN"
+        })
+      });
+      return;
+    } catch (error) {
+      console.error("Persistent signal save failed:", error.message);
+    }
+  }
   if (signalHistory.some(x => x.key === key)) return;
   signalHistory.push({
     key, pair, side: a.state, entry: a.entry, stop: a.stop, tp1: a.tp1,
@@ -294,8 +309,36 @@ function recordSignal(pair, a) {
   while (signalHistory.length > MAX_SIGNAL_HISTORY) signalHistory.shift();
 }
 
-function updateSignalOutcomes(pair, candles) {
+async function updateSignalOutcomes(pair, candles) {
   const closed = closedOnly(candles);
+  if (DB_ENABLED) {
+    try {
+      const open = await supabaseRequest(
+        `signal_history?pair=eq.${encodeURIComponent(pair)}&outcome=eq.OPEN&select=id,side,stop,tp1,created_at`
+      );
+      for (const signal of open || []) {
+        for (const candle of closed) {
+          if (candle.closeTime <= Date.parse(signal.created_at)) continue;
+          const hitStop = signal.side === "BUY" ? candle.l <= Number(signal.stop) : candle.h >= Number(signal.stop);
+          const hitTarget = signal.side === "BUY" ? candle.h >= Number(signal.tp1) : candle.l <= Number(signal.tp1);
+          let outcome = null;
+          if (hitStop && hitTarget) outcome = "AMBIGUOUS";
+          else if (hitStop) outcome = "LOSS";
+          else if (hitTarget) outcome = "WIN";
+          if (outcome) {
+            await supabaseRequest(`signal_history?id=eq.${signal.id}`, {
+              method: "PATCH",
+              body: JSON.stringify({ outcome, closed_at: new Date(candle.closeTime).toISOString() })
+            });
+            break;
+          }
+        }
+      }
+      return;
+    } catch (error) {
+      console.error("Persistent outcome update failed:", error.message);
+    }
+  }
   for (const signal of signalHistory) {
     if (signal.pair !== pair || signal.outcome !== "OPEN") continue;
     for (const candle of closed) {
@@ -321,16 +364,26 @@ function updateSignalOutcomes(pair, candles) {
   }
 }
 
-function formatPerformance() {
-  const wins = signalHistory.filter(x => x.outcome === "WIN").length;
-  const losses = signalHistory.filter(x => x.outcome === "LOSS").length;
-  const open = signalHistory.filter(x => x.outcome === "OPEN").length;
-  const ambiguous = signalHistory.filter(x => x.outcome === "AMBIGUOUS").length;
+async function formatPerformance() {
+  let rows = signalHistory;
+  let persistent = false;
+  if (DB_ENABLED) {
+    try {
+      rows = await supabaseRequest("signal_history?select=outcome&order=created_at.desc&limit=500");
+      persistent = true;
+    } catch (error) {
+      console.error("Persistent performance read failed:", error.message);
+    }
+  }
+  const wins = rows.filter(x => x.outcome === "WIN").length;
+  const losses = rows.filter(x => x.outcome === "LOSS").length;
+  const open = rows.filter(x => x.outcome === "OPEN").length;
+  const ambiguous = rows.filter(x => x.outcome === "AMBIGUOUS").length;
   const decided = wins + losses;
   const winRate = decided ? (wins / decided * 100).toFixed(1) : "—";
   return `📈 CRYPTOSIGNAL AI · PERFORMANCE
 
-Tracked signals: ${signalHistory.length}
+Tracked signals: ${rows.length}
 🟢 TP1 reached: ${wins}
 🔴 Stop Loss reached: ${losses}
 ⏳ Still active: ${open}
@@ -339,7 +392,8 @@ Tracked signals: ${signalHistory.length}
 Win rate: ${winRate}${decided ? "%" : ""}
 Based on ${decided} resolved signals.
 
-⚠️ In-memory tracking only: history resets when the service restarts. A candle touching both TP1 and SL is excluded from win-rate calculations. Experimental tracking, not audited trading results.`;
+${persistent ? "💾 Persistent Supabase history enabled (latest 500 records)." : "⚠️ In-memory tracking only: history resets when the service restarts. Configure Supabase environment variables for permanent history."}
+A candle touching both TP1 and SL is excluded from win-rate calculations. Experimental tracking, not audited trading results.`;
 }
 
 async function scanForAlerts() {
@@ -350,13 +404,13 @@ async function scanForAlerts() {
       try {
         const [five, fifteen] = await Promise.all([getCandles(pair, "5m"), getCandles(pair, "15m")]);
         const a = analyzeSMC(five, fifteen);
-        await updateSignalOutcomes(pair, five);
+        await await updateSignalOutcomes(pair, five);
         if (a.state !== "BUY" && a.state !== "SELL") {
           lastAlertByPair.delete(pair);
           continue;
         }
         const key = [a.state, a.entry, a.stop, a.tp1, a.tp2, a.fvgLow, a.fvgHigh].join("|");
-        await recordSignal(pair, a);
+        await await recordSignal(pair, a);
         if (lastAlertByPair.get(pair) === key) continue;
         const live = await coinbasePrice(pair).catch(() => a.price);
         const message = formatSignal(pair, a, live);
@@ -428,8 +482,8 @@ async function handleUpdate(update) {
       try {
         const [five, fifteen] = await Promise.all([getCandles(pair, "5m"), getCandles(pair, "15m")]);
         const a = analyzeSMC(five, fifteen);
-        updateSignalOutcomes(pair, five);
-        recordSignal(pair, a);
+        await updateSignalOutcomes(pair, five);
+        await recordSignal(pair, a);
         const live = await coinbasePrice(pair).catch(() => a.price);
         reply = `◈ CryptoSignal AI · SMC\n${pair} · 5m entry / 15m context\n\nSIGNAL: ${a.state}\n15m bias: ${a.bias}\nSetup: ${a.stage}\nStrength: ${a.strength}/100 (rule stages, not win probability)\n\nPrice: $${money(live)}\nEntry: $${money(a.entry)}\nStop: $${money(a.stop)}\nTP1: $${money(a.tp1)} (${a.rr1 ?? "—"}R)\nTP2: $${money(a.tp2)} (${a.rr2 ?? "—"}R)\n\nLiquidity: $${money(a.liquidityLevel)}\nSweep extreme: $${money(a.sweepExtreme)}\nMSS: $${money(a.mssLevel)}\nFVG: $${money(a.fvgLow)} – $${money(a.fvgHigh)}\n5m ATR: $${money(a.atr)}\n\nExperimental analysis only. Not financial advice.`;
       } catch (error) {
