@@ -563,7 +563,6 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && requestPath === "/api/market") {
-    res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
     try {
       const params = new URL(req.url, "http://localhost").searchParams;
       const pair = (params.get("pair") || "BTCUSDT").toUpperCase();
@@ -579,6 +578,7 @@ const server = createServer(async (req, res) => {
       const analysis = analyzeSMC(five, fifteen);
       await updateSignalOutcomes(pair, five);
       await recordSignal(pair, analysis);
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
       return res.end(JSON.stringify({
         pair, price: live, analysis,
         updatedAt: new Date().toISOString(),
