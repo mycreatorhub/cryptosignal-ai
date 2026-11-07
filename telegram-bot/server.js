@@ -206,14 +206,14 @@ async function handleUpdate(update) {
   } else if (text === "/help") {
     reply = "Commands:\n/price BTCUSDT — latest Coinbase spot price\n/signal BTCUSDT — 5m SMC setup with 15m context\n\nSignals are experimental and are not financial advice.";
   } else if (text.startsWith("/price")) {
-    const pair = (text.split(/\\s+/)[1] || "BTCUSDT").toUpperCase();
+    const pair = (text.split(/\s+/)[1] || "BTCUSDT").toUpperCase();
     if (!/^[A-Z0-9]{5,20}$/.test(pair)) reply = "Invalid pair. Example: /price BTCUSDT";
     else {
       try { reply = `💰 ${pair}\nCoinbase spot: $${money(await coinbasePrice(pair))}`; }
       catch (error) { reply = `⚠️ Price lookup failed for ${pair}\n${error.message}`; }
     }
   } else if (text.startsWith("/signal")) {
-    const pair = (text.split(/\\s+/)[1] || "BTCUSDT").toUpperCase();
+    const pair = (text.split(/\s+/)[1] || "BTCUSDT").toUpperCase();
     if (!/^[A-Z0-9]{5,20}$/.test(pair)) reply = "Invalid pair. Example: /signal BTCUSDT";
     else {
       try {
