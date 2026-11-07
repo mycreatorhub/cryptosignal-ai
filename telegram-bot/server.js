@@ -412,9 +412,9 @@ async function checkDatabase() {
   }
 
   if (insertPassed && readPassed && cleanupPassed) {
-    return "✅ SUPABASE DATABASE CHECK PASSED\\n\\nInsert: OK\\nRead-back: OK\\nCleanup: OK\\n\\nA temporary DBTEST row was created, verified, and deleted. No trading signal or performance count was changed.";
+    return "✅ SUPABASE DATABASE CHECK PASSED\n\nInsert: OK\nRead-back: OK\nCleanup: OK\n\nA temporary DBTEST row was created, verified, and deleted. No trading signal or performance count was changed.";
   }
-  return `⚠️ SUPABASE DATABASE CHECK INCOMPLETE\\n\\nInsert: ${insertPassed ? "OK" : "FAILED"}\\nRead-back: ${readPassed ? "OK" : "FAILED"}\\nCleanup: ${insertedId ? (cleanupPassed ? "OK" : "FAILED — check Supabase for a leftover DBTEST row") : "Not needed"}\\n\\nCheck the Render logs for the Supabase API error. No real trading signal was created.`;
+  return `⚠️ SUPABASE DATABASE CHECK INCOMPLETE\n\nInsert: ${insertPassed ? "OK" : "FAILED"}\nRead-back: ${readPassed ? "OK" : "FAILED"}\nCleanup: ${insertedId ? (cleanupPassed ? "OK" : "FAILED — check Supabase for a leftover DBTEST row") : "Not needed"}\n\nCheck the Render logs for the Supabase API error. No real trading signal was created.`;
 }
 
 async function formatPerformance() {
