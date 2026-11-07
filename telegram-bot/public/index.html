@@ -192,6 +192,7 @@ window.addEventListener('resize',drawPriceChart);
 
 const money=n=>n!==null&&n!==undefined&&n!==''&&Number.isFinite(Number(n))?'
 const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+calculateRisk();
 async function loadMarket(){
  const pair=pairSelect.value;
  setText('pairLabel',pair.replace('USDT',' / USDT'));
@@ -378,7 +379,6 @@ document.getElementById('useSignalLevels').addEventListener('click',()=>{
  status.textContent='Loaded '+s.pair+' '+s.state+' levels from the latest confirmed signal. Verify prices before use.';
  calculateRisk();
 });
-calculateRisk();
 const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
 async function loadMarket(){
  const pair=pairSelect.value;
