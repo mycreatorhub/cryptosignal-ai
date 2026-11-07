@@ -8,7 +8,7 @@
 <style>
 :root{color-scheme:dark;--bg:#080d18;--panel:#101827;--panel2:#141f31;--line:#233148;--muted:#8fa0b8;--text:#f3f6fc;--green:#32d69a;--red:#ff647c;--blue:#77a7ff;--amber:#f6c66b}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -15%,#172b48 0,transparent 45%),var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-.wrap{max-width:760px;margin:auto;padding:20px 16px 100px}.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}.brand{display:flex;align-items:center;gap:11px}.logo{width:42px;height:42px;border-radius:14px;background:linear-gradient(145deg,#1d936e,#1c4f85);display:grid;place-items:center;font-size:21px;box-shadow:0 8px 25px #0006}.brand strong{display:block;font-size:15px;letter-spacing:.08em}.brand small{color:var(--muted);font-size:11px;letter-spacing:.12em}.status{border:1px solid #275844;color:var(--green);background:#10251f;border-radius:30px;padding:6px 10px;font-size:10px;font-weight:800;letter-spacing:.08em}.eyebrow{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.13em;font-weight:700}.heading{display:flex;align-items:end;justify-content:space-between;margin:8px 0 14px}.heading h1{font-size:25px;margin:3px 0 0;letter-spacing:-.04em}.select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:11px;padding:9px 11px;font:inherit;font-weight:700}
+.wrap{max-width:760px;margin:auto;padding:20px 16px 100px}.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}.brand{display:flex;align-items:center;gap:11px}.logo{width:42px;height:42px;border-radius:14px;background:linear-gradient(145deg,#1d936e,#1c4f85);display:grid;place-items:center;font-size:21px;box-shadow:0 8px 25px #0006}.brand strong{display:block;font-size:15px;letter-spacing:.08em}.brand small{color:var(--muted);font-size:11px;letter-spacing:.12em}.status{border:1px solid #275844;color:var(--green);background:#10251f;border-radius:30px;padding:6px 10px;font-size:10px;font-weight:800;letter-spacing:.08em}.status.checking{border-color:#57472b;color:var(--amber);background:#282113}.status.online{border-color:#275844;color:var(--green);background:#10251f}.status.offline{border-color:#633044;color:var(--red);background:#2b1420}.eyebrow{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.13em;font-weight:700}.heading{display:flex;align-items:end;justify-content:space-between;margin:8px 0 14px}.heading h1{font-size:25px;margin:3px 0 0;letter-spacing:-.04em}.select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:11px;padding:9px 11px;font:inherit;font-weight:700}
 .card{background:linear-gradient(145deg,#121d2e,#0f1725);border:1px solid var(--line);border-radius:19px;padding:16px;margin-bottom:13px;box-shadow:0 12px 35px #0002}.price-row{display:flex;justify-content:space-between;align-items:start;gap:12px}.price{font-size:29px;font-weight:800;letter-spacing:-.04em;margin:5px 0}.sub{color:var(--muted);font-size:12px}.pill{border-radius:9px;padding:6px 9px;background:#19263a;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.08em}.chart{height:118px;margin-top:16px;border-radius:12px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 28px,#26364b66 29px),linear-gradient(180deg,#14243866,#0c1522);position:relative;overflow:hidden;display:grid;place-items:center;color:#71839b;font-size:11px}.chart svg{position:absolute;inset:0;width:100%;height:100%}.chart-label{position:relative;background:#0d1724cc;padding:6px 9px;border-radius:8px}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.metric{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:13px}.metric b{display:block;font-size:17px;margin-top:7px}.metric small{color:var(--muted);font-size:11px}
 .signal{display:flex;justify-content:space-between;align-items:center}.wait{font-size:22px;font-weight:900;letter-spacing:.06em;color:var(--amber)}.signal p{color:var(--muted);font-size:12px;margin:4px 0 0}.signal-icon{width:42px;height:42px;border-radius:13px;background:#342b19;color:var(--amber);display:grid;place-items:center;font-size:20px}
@@ -16,13 +16,13 @@
 .section-title{font-size:14px;margin:20px 0 10px}.pair-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--line)}.coin{display:flex;align-items:center;gap:10px}.coin-icon{width:31px;height:31px;border-radius:50%;background:#1a2b43;display:grid;place-items:center;font-weight:800}.coin small{display:block;color:var(--muted);font-size:10px}.right{text-align:right}.right b{display:block}.right small{color:var(--muted);font-size:10px}
 .notice{padding:12px 13px;border:1px solid #57472b;background:#282113;border-radius:13px;color:#d8c18d;font-size:11px;margin-top:13px}
 .bottom{position:fixed;z-index:5;bottom:0;left:0;right:0;padding:9px 12px calc(9px + env(safe-area-inset-bottom));background:#0a111eeF;backdrop-filter:blur(18px);border-top:1px solid #26344a}.nav{max-width:620px;margin:auto;display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.nav button{border:0;background:transparent;color:#8192aa;border-radius:12px;padding:8px 3px;font:inherit;font-size:10px;display:grid;gap:4px;justify-items:center}.nav button span{font-size:18px}.nav button.active{color:var(--green);background:#173126}
-.page{display:none}.page.active{display:block}.empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:12px}.action{width:100%;border:1px solid #2a7458;background:#123b2c;color:#b6f7d8;border-radius:12px;padding:12px;font:inherit;font-weight:800;margin-top:12px}
+.page{display:none}.page.active{display:block}.empty{padding:24px 12px;text-align:center;color:var(--muted);font-size:12px}.empty-state{display:grid;gap:8px}.empty-state strong{color:var(--text);font-size:14px}.empty-state span{line-height:1.6}.action{width:100%;border:1px solid #2a7458;background:#123b2c;color:#b6f7d8;border-radius:12px;padding:12px;font:inherit;font-weight:800;margin-top:12px}
 @media(min-width:600px){.wrap{padding-top:28px}.grid{grid-template-columns:repeat(4,minmax(0,1fr))}.chart{height:155px}}
 </style>
 </head>
 <body>
 <main class="wrap">
-<header class="top"><div class="brand"><div class="logo">◈</div><div><strong>CRYPTOSIGNAL AI</strong><small>SMART MONEY • MARKET INTELLIGENCE</small></div></div><div class="status">● PREVIEW</div></header>
+<header class="top"><div class="brand"><div class="logo">◈</div><div><strong>CRYPTOSIGNAL AI</strong><small>SMART MONEY • MARKET INTELLIGENCE</small></div></div><div class="status checking" id="backendStatus">● CHECKING</div></header>
 <section class="page active" id="dashboard">
 <div class="heading"><div><div class="eyebrow">Market overview</div><h1>Dashboard</h1></div><select class="select" id="pair"><option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option><option>BNBUSDT</option><option>XRPUSDT</option></select></div>
 <div class="card"><div class="price-row"><div><div class="eyebrow" id="pairLabel">BTC / USDT</div><div class="price" id="livePrice">Loading…</div><div class="sub" id="priceUpdated">Connecting to Coinbase…</div></div><div class="pill">5M ENTRY · 15M CONTEXT</div></div><div class="chart"><svg viewBox="0 0 600 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0 105 L30 96 L58 110 L90 82 L120 91 L150 62 L178 76 L210 48 L240 59 L270 42 L300 69 L330 54 L360 75 L390 51 L420 60 L450 34 L480 47 L510 28 L540 43 L570 18 L600 30" fill="none" stroke="#39c99a" stroke-width="2.5" opacity=".75"/><path d="M0 105 L30 96 L58 110 L90 82 L120 91 L150 62 L178 76 L210 48 L240 59 L270 42 L300 69 L330 54 L360 75 L390 51 L420 60 L450 34 L480 47 L510 28 L540 43 L570 18 L600 30 L600 150 L0 150Z" fill="url(#g)" opacity=".15"/><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#39c99a"/><stop offset="1" stop-color="#39c99a" stop-opacity="0"/></linearGradient></defs></svg><span class="chart-label">Chart connects in next stage</span></div></div>
@@ -37,10 +37,57 @@
 </main>
 <nav class="bottom"><div class="nav"><button class="active" data-page="dashboard"><span>⌂</span>Home</button><button data-page="markets"><span>▥</span>Markets</button><button data-page="performance"><span>⌁</span>Performance</button><button data-page="settings"><span>⚙</span>Settings</button></div></nav>
 <script>
-const buttons=[...document.querySelectorAll('[data-page]')];
+const statusEl=document.getElementById('backendStatus');\nasync function checkBackend(){try{const r=await fetch('/health',{cache:'no-store'});const d=await r.json();if(!r.ok||d.ok!==true)throw new Error('Health check failed');statusEl.className='status online';statusEl.textContent='● BACKEND ONLINE';}catch(e){statusEl.className='status offline';statusEl.textContent='● CONNECTION ISSUE';}}\nconst buttons=[...document.querySelectorAll('[data-page]')];
 buttons.forEach(button=>button.addEventListener('click',()=>{buttons.forEach(x=>x.classList.toggle('active',x===button));document.querySelectorAll('.page').forEach(page=>page.classList.toggle('active',page.id===button.dataset.page));if(button.dataset.page==='performance')loadPerformance();if(button.dataset.page==='markets')loadMarkets();}));
 const pairSelect=document.getElementById('pair');
-const money=n=>Number.isFinite(Number(n))?'
+const money=n=>n!==null&&n!==undefined&&n!==''&&Number.isFinite(Number(n))?'
+const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
+async function loadMarket(){
+ const pair=pairSelect.value;
+ setText('pairLabel',pair.replace('USDT',' / USDT'));
+ try{
+  const response=await fetch('/api/market?pair='+encodeURIComponent(pair),{cache:'no-store'});
+  const data=await response.json();if(!response.ok)throw new Error(data.error||'Market API unavailable');
+  const a=data.analysis||{};
+  setText('livePrice',money(data.price));
+  setText('priceUpdated','Coinbase spot · Updated '+new Date(data.updatedAt).toLocaleTimeString());
+  setText('biasValue',a.bias||'—');setText('setupValue',a.stage||'—');
+  setText('strengthValue',(a.strength??'—')+' / 100');setText('stateValue',a.state||'WAIT');
+  setText('signalState',a.state||'WAIT');setText('signalStage',a.stage||'No active setup');
+  setText('entryValue',money(a.entry));setText('stopValue',money(a.stop));
+  setText('targetValue',money(a.tp1)+' / '+money(a.tp2));
+  const state=document.getElementById('signalState');
+  state.style.color=a.state==='BUY'?'var(--green)':a.state==='SELL'?'var(--red)':'var(--amber)';
+  setText('dataNotice','Live Coinbase price and current SMC analysis · '+data.pair+'. Strength is a rule-stage score, not win probability.');
+ }catch(error){
+  setText('priceUpdated','Live data unavailable: '+error.message);
+  setText('signalStage','Could not load current SMC analysis.');
+  setText('dataNotice','Market API error: '+error.message);
+ }
+}
+async function loadMarkets(){
+ const box=document.getElementById('marketsRows');
+ try{
+  const response=await fetch('/api/markets',{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Unable to load markets');
+  box.innerHTML=data.markets.map(item=>'<div class="pair-row"><div class="coin"><div class="coin-icon">'+item.pair.slice(0,1)+'</div><div><b>'+item.pair.replace('USDT','')+'</b><small>'+item.pair+'</small></div></div><div class="right"><b>'+ (item.price?money(item.price):'Unavailable')+'</b><small>Coinbase spot</small></div></div>').join('')+'<div class="sub">Updated '+new Date(data.updatedAt).toLocaleTimeString()+'</div>';
+  const watch=['BTCUSDT','ETHUSDT','SOLUSDT'];
+  document.getElementById('watchlistRows').innerHTML=data.markets.filter(x=>watch.includes(x.pair)).map(item=>'<div class="pair-row"><div class="coin"><div class="coin-icon">'+item.pair.slice(0,1)+'</div><div><b>'+item.pair.replace('USDT','')+'</b><small>'+item.pair+'</small></div></div><div class="right"><b>'+(item.price?money(item.price):'Unavailable')+'</b><small>Coinbase spot</small></div></div>').join('');
+ }catch(error){box.innerHTML='<div class="empty">Market data unavailable: '+error.message+'</div>';}
+}
+async function loadPerformance(){
+ const box=document.getElementById('performanceRows');
+ try{
+  const response=await fetch('/api/performance',{cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Performance API unavailable');
+  setText('trackedValue',data.tracked);setText('winRateValue',data.winRate===null?'—':data.winRate+'%');
+  setText('winsValue',data.wins);setText('lossesValue',data.losses);
+  box.innerHTML='<div class="sub">'+(data.persistent?'Supabase persistent history':'Temporary in-memory history')+' · Latest '+data.records.length+' records</div>'+
+   (data.records.length?data.records.map(x=>'<div class="pair-row"><div><b>'+x.pair+' · '+x.side+'</b><small>'+new Date(x.created_at||Date.now()).toLocaleString()+'</small></div><div class="right"><b>'+x.outcome+'</b><small>Entry '+money(x.entry)+'</small></div></div>').join('') :'<div class="empty empty-state"><strong>No signals tracked yet</strong><span>There are no confirmed BUY/SELL setups in the history. WAIT conditions are intentionally excluded, so this is not a performance or database error. Your statistics will appear here after a genuine signal is recorded.</span></div>');
+ }catch(error){box.textContent='Could not load performance: '+error.message;}
+}
+pairSelect.addEventListener('change',loadMarket);
+loadMarket();loadMarkets();loadPerformance();
+setInterval(loadMarket,30000);setInterval(loadMarkets,30000);setInterval(loadPerformance,60000);
+</script>
 </body>
 </html>+Number(n).toLocaleString('en-US',{maximumFractionDigits:8}):'—';
 const setText=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value;};
