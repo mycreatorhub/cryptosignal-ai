@@ -219,7 +219,7 @@ async function handleUpdate(update) {
       try {
         const [five, fifteen] = await Promise.all([getCandles(pair, "5m"), getCandles(pair, "15m")]);
         const a = analyzeSMC(five, fifteen);
-        const live = await coinbasePrice(pair).catch(() => a.px);
+        const live = await coinbasePrice(pair).catch(() => a.price);
         reply = `◈ CryptoSignal AI · SMC\n${pair} · 5m entry / 15m context\n\nSIGNAL: ${a.state}\n15m bias: ${a.bias}\nSetup: ${a.stage}\nStrength: ${a.strength}/100 (rule stages, not win probability)\n\nPrice: $${money(live)}\nEntry: $${money(a.entry)}\nStop: $${money(a.stop)}\nTP1: $${money(a.tp1)} (${a.rr1 ?? "—"}R)\nTP2: $${money(a.tp2)} (${a.rr2 ?? "—"}R)\n\nLiquidity: $${money(a.liquidityLevel)}\nSweep extreme: $${money(a.sweepExtreme)}\nMSS: $${money(a.mssLevel)}\nFVG: $${money(a.fvgLow)} – $${money(a.fvgHigh)}\n5m ATR: $${money(a.atr)}\n\nExperimental analysis only. Not financial advice.`;
       } catch (error) {
         reply = `⚠️ Analysis failed for ${pair}\n${error.message}`;
